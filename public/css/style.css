@@ -1,0 +1,103 @@
+@layer base {
+  html, body {
+    width: 100vw;
+    margin: 0;
+    padding: 0;
+    background-color: #0f131c;
+    color: #dfe2ee;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  body {
+    overscroll-behavior: none;
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Glassmorphism Classes */
+.glass-panel {
+  background: rgba(19, 27, 42, 0.7);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-dock {
+  background: rgba(28, 32, 40, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-pill {
+  background: rgba(38, 42, 51, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Speaking Aura Glow */
+.speaking-glow {
+  box-shadow: 0 0 0 2px #10b981, 0 0 24px rgba(16, 185, 129, 0.45);
+}
+
+.speaking-glow-ring {
+  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+/* Sound Waveform Animation */
+@keyframes soundwave {
+  0%, 100% { height: 4px; }
+  50% { height: 18px; }
+}
+
+.wave-bar-1 { animation: soundwave 1s ease-in-out infinite 0.1s; }
+.wave-bar-2 { animation: soundwave 0.8s ease-in-out infinite 0.25s; }
+.wave-bar-3 { animation: soundwave 1.2s ease-in-out infinite 0.4s; }
+.wave-bar-4 { animation: soundwave 0.9s ease-in-out infinite 0.15s; }
+
+/* View transitions */
+.app-view {
+  display: none;
+  opacity: 0;
+  transition: opacity 0.25s ease-in-out;
+}
+.app-view.active {
+  display: flex;
+  opacity: 1;
+}
+
+/* Drag cursor */
+.grab-handle {
+  cursor: grab;
+}
+.grab-handle:active {
+  cursor: grabbing;
+}

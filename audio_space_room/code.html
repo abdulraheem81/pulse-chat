@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#0f131c;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-tertiary-fixed": "#410004", "on-background": "#dfe2ee", "surface-container-highest": "#31353e", "surface": "#0f131c", "primary-container": "#10b981", "on-tertiary-fixed-variant": "#930013", "on-secondary-fixed-variant": "#2f2ebe", "surface-container": "#1c2028", "background": "#0f131c", "inverse-surface": "#dfe2ee", "tertiary-container": "#ff7a73", "surface-container-lowest": "#0a0e16", "on-tertiary": "#68000a", "primary-fixed-dim": "#4edea3", "on-surface": "#dfe2ee", "surface-variant": "#31353e", "on-tertiary-container": "#79000e", "secondary-fixed-dim": "#c0c1ff", "on-error": "#690005", "on-primary-container": "#00422b", "on-secondary-container": "#b0b2ff", "primary": "#4edea3", "secondary-fixed": "#e1e0ff", "error": "#ffb4ab", "inverse-on-surface": "#2c3039", "tertiary-fixed": "#ffdad7", "on-secondary-fixed": "#07006c", "error-container": "#93000a", "on-error-container": "#ffdad6", "inverse-primary": "#006c49", "primary-fixed": "#6ffbbe", "tertiary-fixed-dim": "#ffb3ad", "on-surface-variant": "#bbcabf", "on-secondary": "#1000a9", "on-primary": "#003824", "surface-container-high": "#262a33", "outline-variant": "#3c4a42", "surface-dim": "#0f131c", "surface-tint": "#4edea3", "surface-bright": "#353942", "on-primary-fixed": "#002113", "tertiary": "#ffb3ad", "secondary-container": "#3131c0", "on-primary-fixed-variant": "#005236", "outline": "#86948a", "surface-container-low": "#181c24", "secondary": "#c0c1ff" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "margin-tablet": "1.5rem", "margin": "1rem", "space-xs": "0.25rem", "gutter-tablet": "1rem", "gutter-desktop": "1.5rem", "space-xl": "1.5rem", "space-2xl": "2rem", "space-lg": "1rem", "gutter": "0.75rem", "margin-desktop": "2rem", "space-md": "0.75rem", "space-3xl": "3rem", "space-sm": "0.5rem" }, fontFamily: { "headline-xl": ["Space Grotesk"], "headline-md": ["Space Grotesk"], "headline-sm": ["Space Grotesk"], "body-sm": ["Plus Jakarta Sans"], "body-lg": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "headline-xl-mobile": ["Space Grotesk"], "headline-lg": ["Space Grotesk"], "label-sm": ["JetBrains Mono"], "headline-lg-mobile": ["Space Grotesk"], "label-md": ["JetBrains Mono"], "label-lg": ["Plus Jakarta Sans"] }, fontSize: { "headline-xl": ["40px", { lineHeight: "48px", letterSpacing: "-0.03em", fontWeight: "700" }], "headline-md": ["22px", { lineHeight: "28px", fontWeight: "600" }], "headline-sm": ["18px", { lineHeight: "24px", fontWeight: "500" }], "body-sm": ["12px", { lineHeight: "18px", fontWeight: "400" }], "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }], "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }], "headline-xl-mobile": ["30px", { lineHeight: "38px", letterSpacing: "-0.02em", fontWeight: "700" }], "headline-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "600" }], "label-sm": ["10px", { lineHeight: "14px", letterSpacing: "0.04em", fontWeight: "500" }], "headline-lg-mobile": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" }], "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "500" }], "label-lg": ["13px", { lineHeight: "16px", letterSpacing: "0.01em", fontWeight: "600" }] } } } };</script></head><body class="bg-surface text-on-surface font-body-md text-body-md flex flex-col min-h-screen selection:bg-primary selection:text-on-primary"><header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-space-md flex items-center justify-between"><div class="flex items-center gap-space-sm"><button aria-label="Go back" class="w-11 h-11 rounded-full flex items-center justify-center text-on-surface hover:text-primary transition-colors" onclick="history.back()"><span class="material-symbols-outlined text-[24px]">arrow_back_ios_new</span></button><img alt="Pulse Chat Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1VVqECEku7nu-SNmaTumkvLqC6Du75jcKuxIjfW80GgX8hP5yDhYRSo_9O1vZrtEkc3xwwJKXD2XKFPkZTFmcl5eWUmxGJw5gZidepqxj8F8d6iI7Mrr2ovAp29LriospdenmqBc_hU_3bivGid_vLIcEqxCkX4BSBHlatUH5FDu-Y7Q6dO-w61juRPF9yCb9NsB1fsf-pGfq5dUW4leInNgNyDi33LBjm87MHtlys"/><h1 class="font-headline-sm text-headline-sm text-on-surface tracking-tight truncate max-w-[180px]">Audio Space Room</h1></div><div class="flex items-center gap-space-sm"><button aria-label="Session Options" class="w-11 h-11 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[22px]">more_vert</span></button><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmKixmEoiU3rCABD8FoNxxeE5dcyxXdHyNj3GyY5JQ1ExiSrrXhJfIYCEIPUe41GMS1UY3ue31mheAuplxHoDrCvdYH_FRVL_j3c8cSD3i89qjl_DSPbgCUc0zY-DZr4ohKJ73AgYv8mgxBwLBdvjIrJA04HD7wE8gYyMH_YD__3rvUkT3x5EfFjQ2aC1hufLj6n0QLK_9-Lxf8Np3JKrE5Rk70J2w7a-kf2KuAQ"/></div></div></header><main class="flex flex-col relative w-full pt-16 bg-surface min-h-screen"><div class="flex flex-col w-full relative pb-28">
+<!-- Room Info & Status Header -->
+<div class="px-space-md pt-space-md flex flex-col gap-space-sm relative z-10">
+<div class="flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-xs flex-wrap">
+<!-- Live Indicator Pill -->
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high/80 backdrop-blur-md">
+<span class="w-2 h-2 rounded-full bg-error animate-ping"></span>
+<span class="font-label-sm text-label-sm text-error uppercase tracking-wider">LIVE</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">142 listening</span>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-secondary-container/40 text-secondary font-label-sm text-label-sm backdrop-blur-sm">
+          #product-design
+        </span>
+</div>
+<!-- Leave Quietly Button -->
+<button class="px-3 py-1.5 rounded-full bg-error-container/30 hover:bg-error-container/50 active:scale-95 transition-all flex items-center gap-1.5 text-error backdrop-blur-md">
+<span class="material-symbols-outlined text-[16px]">logout</span>
+<span class="font-label-md text-label-md font-medium">Leave quietly</span>
+</button>
+</div>
+<div class="flex flex-col gap-0.5 mt-1">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-semibold tracking-tight">
+        Design Systems &amp; AI Workflows
+      </h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px] text-primary">record_voice_over</span>
+        Exploring automated component tokens, token syncs &amp; multimodal design handoff.
+      </p>
+</div>
+</div>
+<!-- Stage Section (Speakers) -->
+<div class="mt-space-lg px-space-md flex flex-col gap-space-md relative z-10">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">Stage</span>
+<span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm font-semibold">4 Speaking</span>
+</div>
+<div class="flex items-center gap-1 text-on-surface-variant font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+<span>Studio Audio 48kHz</span>
+</div>
+</div>
+<!-- Speaker Tiles Grid -->
+<div class="grid grid-cols-2 gap-space-md">
+<!-- Host (Active Speaking with Glowing Pulse Ring) -->
+<div class="relative bg-surface-container/60 backdrop-blur-xl p-space-md rounded-xl flex flex-col items-center justify-center text-center gap-2.5 overflow-hidden group">
+<!-- Speaking Glow Aura -->
+<div class="absolute inset-0 bg-gradient-to-b from-primary/15 via-transparent to-transparent pointer-events-none"></div>
+<div class="relative mt-1">
+<!-- Multi-layer animated voice ripple ring -->
+<div class="absolute -inset-2 rounded-full bg-primary/20 animate-ping opacity-60"></div>
+<div class="absolute -inset-1.5 rounded-full bg-primary/30 animate-pulse"></div>
+<!-- Avatar Image -->
+<div class="relative w-20 h-20 rounded-full overflow-hidden shadow-lg shadow-primary/20">
+<img class="w-full h-full object-cover" data-alt="Close up studio portrait of Alex Rivers, product design leader, smiling confidently with soft volumetric cyan and emerald lighting in dark audio studio background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWJUeVZ-_dk0vwpI5CjKJh82a4RLPS8ThYCi52vbe7WUslrAfm9HCSkgewQ9WHqC_JMiLvMDz8VpEJlfnFlBNgrb5fC1l8PRzq43vwdQmq8FxKHzrqZSQ3yZF93k-ZWATuXqIvBvSYX1XSbxBX7PHZuYopAhSpbtWCx8FMEqlCEhQZ9u0Bqy8WwrejVZB4obw1Ni_l0dlBg3XRuwTt4Z9Uc_3oipXQx1V-dc1Zzw"/>
+</div>
+<!-- Host Crown Badge -->
+<div class="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-md">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">stars</span>
+</div>
+<!-- Live Soundwave Equalizer Pill -->
+<div class="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-surface-container-lowest/90 backdrop-blur-md flex items-center gap-0.5 shadow-sm">
+<span class="w-0.5 h-3 bg-primary rounded-full animate-bounce" style="animation-delay: 0.1s"></span>
+<span class="w-0.5 h-4 bg-primary rounded-full animate-bounce" style="animation-delay: 0.25s"></span>
+<span class="w-0.5 h-2.5 bg-primary rounded-full animate-bounce" style="animation-delay: 0.15s"></span>
+<span class="w-0.5 h-3.5 bg-primary rounded-full animate-bounce" style="animation-delay: 0.3s"></span>
+</div>
+</div>
+<div class="flex flex-col items-center min-w-0 w-full mt-1">
+<div class="flex items-center gap-1 max-w-full">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Alex Rivers</span>
+<span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary tracking-wide">HOST • SPEAKING</span>
+</div>
+</div>
+<!-- Co-Host: Elena R. -->
+<div class="relative bg-surface-container/60 backdrop-blur-xl p-space-md rounded-xl flex flex-col items-center justify-center text-center gap-2.5 overflow-hidden">
+<div class="relative mt-1">
+<div class="w-20 h-20 rounded-full overflow-hidden shadow-md">
+<img class="w-full h-full object-cover" data-alt="Cinematic portrait of Elena R., lead design systems architect wearing headphones with subtle ambient violet and deep blue rim lighting in modern dark workstation" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIG3YTreCJBZheGUATIstbNo-FLMdiXtYuRS03oVK4I5SdeNXcYSCTL818vOpUxciJ0BmDxebxhISKFJBHAgfMQZ2LFKvHnL14hhLY--zU5TMgzujWe3sODEXKjXrgCa6FOOfDlpgrmaR97cYuTvenPHOdGe3gbyqoVIVw-wbiNjscrtNoSMCAfG_qt5CWB-uKdp1CE1X6PNu1BVqs3nRgoyRGcn5ixHJ6VvxqzQ"/>
+</div>
+<!-- Co-Host Badge -->
+<div class="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-secondary text-on-secondary flex items-center justify-center shadow-md">
+<span class="material-symbols-outlined text-[14px]">shield_person</span>
+</div>
+<!-- Mic Status -->
+<div class="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full bg-surface-container-lowest/90 backdrop-blur-md flex items-center gap-1">
+<span class="material-symbols-outlined text-on-surface-variant text-[13px]">mic</span>
+</div>
+</div>
+<div class="flex flex-col items-center min-w-0 w-full mt-1">
+<div class="flex items-center gap-1 max-w-full">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Elena R.</span>
+<span class="material-symbols-outlined text-secondary text-[16px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant tracking-wide">CO-HOST</span>
+</div>
+</div>
+<!-- Speaker 3: Marcus Vance -->
+<div class="relative bg-surface-container/60 backdrop-blur-xl p-space-md rounded-xl flex flex-col items-center justify-center text-center gap-2.5 overflow-hidden">
+<div class="relative mt-1">
+<div class="w-20 h-20 rounded-full overflow-hidden shadow-md">
+<img class="w-full h-full object-cover" data-alt="Portrait of Marcus Vance, AI researcher and UI engineer with dark rim spectacles in dim ambient lighting with teal neon accents" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBaFRpdKBSGZvQNC2xMfbtSLW22gpCT5un0FSd6zJgTS0BvqP_368DVykio5kg8oTv2AVt0_cR-_vjNIAustOejtr8V7RwH3Lzgu3YHPAbCWDThy3cOwGMT7e2jJTPfMerCHEcBroIBqSMT588bLBHl26gYmzwf9YN0-Ye0-_-9Eu0OBCob0M4CmXcipeM_xh-7arKX7OgP3E86m5BdLDHJI8pjeJybC1xUX2sxiA"/>
+</div>
+<!-- Hardware Muted Badge -->
+<div class="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full bg-error-container/80 text-error backdrop-blur-md flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">mic_off</span>
+</div>
+</div>
+<div class="flex flex-col items-center min-w-0 w-full mt-1">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Marcus Vance</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant tracking-wide">SPEAKER</span>
+</div>
+</div>
+<!-- Speaker 4: Sofia Chen -->
+<div class="relative bg-surface-container/60 backdrop-blur-xl p-space-md rounded-xl flex flex-col items-center justify-center text-center gap-2.5 overflow-hidden">
+<div class="relative mt-1">
+<div class="w-20 h-20 rounded-full overflow-hidden shadow-md">
+<img class="w-full h-full object-cover" data-alt="Portrait of Sofia Chen, creative director, stylish minimal attire bathed in soft ambient emerald glow with headphone cord visible" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDb7tIRW-qg7TfpbHuxeSqfXuTIfpt7XRS-bPoOLDQG61N1EYNYkFX0us1lP9y-c_WwSRoNSLe5YfAvR6qxhg1fd8dMxoGanlqq3RbBKhY0Yx2J4K5hJ3B_h4YqCqig4lYy0gnGM4BO_nCKhs7Xw6EGBjmjGeWabmeDSKBm-FD5LfIOVjomB_x3y4ujHgc-tnnFbeQ-KuALFReHK9UT2ZXw4jC5qOrcUaxz02u8fw"/>
+</div>
+<!-- Mic Active Idle Indicator -->
+<div class="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full bg-surface-container-lowest/90 backdrop-blur-md flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[13px]">mic</span>
+</div>
+</div>
+<div class="flex flex-col items-center min-w-0 w-full mt-1">
+<div class="flex items-center gap-1 max-w-full">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Sofia Chen</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant tracking-wide">SPEAKER</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Hand Raised & Queue Bar -->
+<div class="px-space-md mt-space-md relative z-10">
+<div class="w-full p-space-md rounded-xl bg-gradient-to-r from-surface-container-high/90 via-surface-container/80 to-surface-container-high/90 backdrop-blur-xl flex items-center justify-between gap-space-sm shadow-md">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-9 h-9 rounded-full bg-tertiary-container/30 text-tertiary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">back_hand</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-body-md text-body-md font-semibold text-on-surface truncate">3 in speaker queue</span>
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-ping shrink-0"></span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Devin, Maya &amp; Liam requested mic</p>
+</div>
+</div>
+<button class="px-3.5 py-1.5 rounded-full bg-primary text-on-primary font-label-md text-label-md font-semibold hover:bg-primary-fixed-dim active:scale-95 transition-all shrink-0 shadow-sm flex items-center gap-1" id="review-queue-btn">
+<span>Review</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Listeners Section -->
+<div class="mt-space-lg px-space-md flex flex-col gap-space-md relative z-10">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">Listeners (138)</span>
+</div>
+<span class="font-body-sm text-body-sm text-primary font-medium flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+        6 friends here
+      </span>
+</div>
+<!-- Listeners Multi-row Grid -->
+<div class="grid grid-cols-4 gap-y-space-md gap-x-2">
+<!-- Mutual Connection 1 -->
+<div class="flex flex-col items-center gap-1 text-center group cursor-pointer">
+<div class="relative w-14 h-14 rounded-full p-0.5 bg-gradient-to-tr from-primary to-secondary">
+<div class="w-full h-full rounded-full overflow-hidden bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Close up face profile of Liam Thorne, UX writer, smiling in warm ambient soft desk lamp setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAokQJDxSOHWoVnPY0B4ORB09K8VKZr6uN5jcjph3p_rslD3LgYy2sdaOItArSUJ7FaSi1iLYm9EmNdsWfgpCqZOE4x1sBCSM40OEgUTsu2nZZvP47gRzC-G21cunTVpMaFHp0WfDRqR50Mos7cdNm-vN1HZnsBDi9C-AObqo_0qEO4cMyvpnoa43DmqB9T9dHwWrE8WUf1RUiIAvUPvTIsSlgB6qmcPfKDTef2jQ"/>
+</div>
+<span class="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-sm text-[9px] font-bold">★</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface font-medium truncate w-full">Liam T.</span>
+<span class="font-label-sm text-[10px] text-primary truncate -mt-1">Follows you</span>
+</div>
+<!-- Mutual Connection 2 -->
+<div class="flex flex-col items-center gap-1 text-center group cursor-pointer">
+<div class="relative w-14 h-14 rounded-full p-0.5 bg-gradient-to-tr from-primary to-secondary">
+<div class="w-full h-full rounded-full overflow-hidden bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Portrait of Maya Patel, senior product manager, smiling with city dusk background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGCmeE0ePhWfvgYuDRm2Iz4iEZiLm-8lGtgwigbFFEIbD_zjpvCV6cZC2JxmqTsySnqS48TvExe495H4mF0uf8geP-tSnvLsH4cj5rJLmXpCWin06Kgp5005MhEWN31SZTFEB4ezx3Js0noRWc6VQGnLtk2XzRfrpM9WnPfCP2hC4bYkjgwhOvqMk1tdV-29b-8gnkvu_6coUg5nHWv7c2adt8JNqMlmvWibuHJg"/>
+</div>
+<span class="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-sm text-[9px] font-bold">★</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface font-medium truncate w-full">Maya P.</span>
+<span class="font-label-sm text-[10px] text-primary truncate -mt-1">Follows you</span>
+</div>
+<!-- Listener 3 (Hand Raised) -->
+<div class="flex flex-col items-center gap-1 text-center group cursor-pointer">
+<div class="relative w-14 h-14 rounded-full bg-surface-container p-0.5">
+<div class="w-full h-full rounded-full overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Creative developer avatar of Devin Miller with neon blue glasses in low-light workspace" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjJlEdQcLbpirNwVyTWXDOgzMksaIJyStyJ9F6CkS6r0QWfjiSo39r6Ptxe1K4xD6La5wNHbruE3MRZilTlbc6Fyz3oc8RwR59GQo9tUSIIMIC7F-SdJaWMfeqLEwKKTRse5iCj5Kl3dV9SIETH7T8L1KSvs3khLndNocBtdmBUcLIsKEhPSg4Un4Qki8JhgjinAkw2KM4miRWQBuPSQGWqbpHbZv5rlngJ_lR5g"/>
+</div>
+<div class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-tertiary-container text-on-tertiary flex items-center justify-center shadow-md animate-bounce">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">back_hand</span>
+</div>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface truncate w-full">Devin M.</span>
+<span class="font-label-sm text-[10px] text-tertiary truncate -mt-1">Hand up</span>
+</div>
+<!-- Listener 4 -->
+<div class="flex flex-col items-center gap-1 text-center group cursor-pointer">
+<div class="relative w-14 h-14 rounded-full bg-surface-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Casual portrait of Sarah Jenkins, motion designer, with warm indoor ambient light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDpzAkU2O4gXJE803ZVOrda9bg5zF-1QkX5cGTA5E3W4KK7tNL9QdG0VIXseNC0o6UNnCU3OADVavAIbknPvDqxAqFtWfVc7zuyEP1XX1jaocupjAPzy6SeOM5UCFW42k5zHMSxXpwcX7qDozN3Lh_e7DV1V_Vka0W-go4zmpXTKqb9o2hBKwCA0pT0r-Kd4olYVfQUXg3hdBh2vdlXonQAgoWzki192UjSb5_3g"/>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface truncate w-full">Sarah J.</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant truncate -mt-1">Listening</span>
+</div>
+<!-- Listener 5 -->
+<div class="flex flex-col items-center gap-1 text-center group cursor-pointer">
+<div class="relative w-14 h-14 rounded-full bg-surface-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Portrait of Julian K., brand strategist in black turtleneck with clean minimalist grey studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBR-Dvtb9zTx9mQ7PTzWg_6Ek-B57wTjtkySGtmpCpkS4QcCO44tzAcjDT0ANMs8DYgUHRjZUPJonsQPvyMekP-raRJ26gUBHTBng7QpGBne9nl49dIgBIMhY_zS_SL6NFFGpjtYtBuKkM4eyaS0oPj3Uz6eY3dVHgx_VL42sz1vd4Hq19U4YCnNbSwTCGOSg1LSl-Ulh1IaZTmhhMRYf1TTNw786KySMBHJ9BhIw"/>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface truncate w-full">Julian K.</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant truncate -mt-1">Listening</span>
+</div>
+<!-- Listener 6 -->
+<div class="flex flex-col items-center gap-1 text-center group cursor-pointer">
+<div class="relative w-14 h-14 rounded-full bg-surface-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Portrait of Clara Gomez, design technologist with gentle purple rim lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBvXKoGR4nMoxs7OqQqaeKTdM-yxX4p6x8XZwXCLf6exxSHs6xKRQxYutKxboXi0GCT9ZOvljh3oDTTJTuVVeFRckQXHNrZ3OumCTpGfBqmLPpmM4zuzQPp5IyVnXvdYE95W_HXpxDH3RjoVBSzICGlU_WExIdocSVF-Q1WYeekJWP-Sm8iQUgHaTKKvkgzWsPPbUrg7TeaoicgtDwITgVSmxYPW65RS_mltRDvQ"/>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface truncate w-full">Clara G.</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant truncate -mt-1">Listening</span>
+</div>
+<!-- Listener 7 -->
+<div class="flex flex-col items-center gap-1 text-center group cursor-pointer">
+<div class="relative w-14 h-14 rounded-full bg-surface-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Portrait of Kenji Sato, software engineer in casual dark hoodie against soft ambient screen lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuClO1Vr1BPTUw4AvywzmiJd9_T3npdDHGNTw2nVcisN1puHwws0gBKpCK0LPBf4IvpVY1oTlmQ16MNAggTzgNqAeiA1KCSMteaucWRT4_a_tFHQR3BlEfCob1FRJ_e9hyEEju1b93Z1-bDK3857NhS-FaGy_I7SDC5RdElUrVIagVIMzjSF-9nv1s-BQWvd6tRBNqEbDaq84GdLrHoYU1slE_6QuBHMON8LyRM01w"/>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface truncate w-full">Kenji S.</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant truncate -mt-1">Listening</span>
+</div>
+<!-- Listener Count Overflow Tile -->
+<div class="flex flex-col items-center gap-1 text-center group cursor-pointer">
+<div class="w-14 h-14 rounded-full bg-surface-container-high flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors shadow-inner">
+<span class="font-headline-sm text-headline-sm font-bold text-primary">+131</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate w-full">more</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant/70 truncate -mt-1">room view</span>
+</div>
+</div>
+</div>
+<!-- Interactive Floating Reaction Burst Overlay Area -->
+<div class="pointer-events-none fixed bottom-24 inset-x-0 h-48 overflow-hidden z-40" id="reaction-burst-container"></div>
+<!-- Bottom Floating Interactive Control Dock -->
+<div class="fixed bottom-4 inset-x-0 mx-auto w-full max-w-[390px] px-space-md z-50">
+<div class="bg-surface-container-lowest/80 backdrop-blur-2xl rounded-full p-2 flex items-center justify-between gap-1 shadow-2xl shadow-black/80">
+<!-- Raise Hand Pill Toggle -->
+<button class="h-12 px-4 rounded-full bg-surface-container-high/90 hover:bg-surface-container-highest text-on-surface flex items-center gap-2 active:scale-95 transition-all group" id="raise-hand-btn">
+<span class="material-symbols-outlined text-[20px] text-tertiary-fixed group-hover:scale-110 transition-transform" style="font-variation-settings: 'FILL' 1;">back_hand</span>
+<span class="font-label-md text-label-md font-semibold text-on-surface" id="hand-btn-label">Raise</span>
+</button>
+<!-- Emoji Reaction Bar Pill -->
+<div class="flex items-center bg-surface-container/60 rounded-full px-1.5 py-1 gap-1">
+<button aria-label="Celebrate" class="w-9 h-9 rounded-full hover:bg-surface-container-highest active:scale-125 transition-all flex items-center justify-center text-base" onclick="triggerReaction('🎉')">
+          🎉
+        </button>
+<button aria-label="Rocket" class="w-9 h-9 rounded-full hover:bg-surface-container-highest active:scale-125 transition-all flex items-center justify-center text-base" onclick="triggerReaction('🚀')">
+          🚀
+        </button>
+<button aria-label="Love" class="w-9 h-9 rounded-full hover:bg-surface-container-highest active:scale-125 transition-all flex items-center justify-center text-base" onclick="triggerReaction('❤️')">
+          ❤️
+        </button>
+<button aria-label="Idea" class="w-9 h-9 rounded-full hover:bg-surface-container-highest active:scale-125 transition-all flex items-center justify-center text-base" onclick="triggerReaction('💡')">
+          💡
+        </button>
+</div>
+<!-- Mic Toggle (Disabled for listener) -->
+<button class="w-12 h-12 rounded-full bg-surface-container-high/70 text-on-surface-variant/50 flex items-center justify-center relative cursor-not-allowed group" id="mic-toggle-btn" title="Muted (Request mic by raising hand)">
+<span class="material-symbols-outlined text-[20px]">mic_off</span>
+<span class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-outline-variant"></span>
+</button>
+<!-- Share Room Button -->
+<button aria-label="Share room" class="w-12 h-12 rounded-full bg-surface-container-high/90 hover:bg-surface-container-highest text-on-surface flex items-center justify-center active:scale-95 transition-all" id="share-room-btn">
+<span class="material-symbols-outlined text-[20px]">ios_share</span>
+</button>
+</div>
+</div>
+</div>
+<script>
+  // Micro-interaction: Emoji Reaction Bursts
+  function triggerReaction(emoji) {
+    const container = document.getElementById('reaction-burst-container');
+    if (!container) return;
+
+    for (let i = 0; i < 3; i++) {
+      const bubble = document.createElement('div');
+      const startX = Math.floor(Math.random() * 80) + 10; // 10% to 90%
+      const floatDuration = Math.random() * 1.2 + 1.2;
+      const size = Math.floor(Math.random() * 12) + 24;
+
+      bubble.innerText = emoji;
+      bubble.style.position = 'absolute';
+      bubble.style.left = startX + '%';
+      bubble.style.bottom = '10px';
+      bubble.style.fontSize = size + 'px';
+      bubble.style.opacity = '1';
+      bubble.style.transition = `transform ${floatDuration}s cubic-bezier(0.2, 0.8, 0.2, 1), opacity ${floatDuration}s ease-out`;
+      bubble.style.transform = `translateY(0px) scale(0.6)`;
+
+      container.appendChild(bubble);
+
+      requestAnimationFrame(() => {
+        const driftX = (Math.random() - 0.5) * 60;
+        const driftY = -(Math.random() * 140 + 80);
+        bubble.style.transform = `translate(${driftX}px, ${driftY}px) scale(1.2)`;
+        bubble.style.opacity = '0';
+      });
+
+      setTimeout(() => {
+        bubble.remove();
+      }, floatDuration * 1000);
+    }
+  }
+
+  // Micro-interaction: Raise Hand Toggle
+  const raiseHandBtn = document.getElementById('raise-hand-btn');
+  const handLabel = document.getElementById('hand-btn-label');
+  let isHandRaised = false;
+
+  if (raiseHandBtn) {
+    raiseHandBtn.addEventListener('click', () => {
+      isHandRaised = !isHandRaised;
+      if (isHandRaised) {
+        raiseHandBtn.classList.remove('bg-surface-container-high/90', 'text-on-surface');
+        raiseHandBtn.classList.add('bg-tertiary-container', 'text-on-tertiary-container', 'shadow-lg');
+        handLabel.textContent = 'Raised';
+        triggerReaction('✋');
+      } else {
+        raiseHandBtn.classList.add('bg-surface-container-high/90', 'text-on-surface');
+        raiseHandBtn.classList.remove('bg-tertiary-container', 'text-on-tertiary-container', 'shadow-lg');
+        handLabel.textContent = 'Raise';
+      }
+    });
+  }
+
+  // Micro-interaction: Review Queue Modal Simulation
+  const reviewQueueBtn = document.getElementById('review-queue-btn');
+  if (reviewQueueBtn) {
+    reviewQueueBtn.addEventListener('click', () => {
+      const originalText = reviewQueueBtn.innerHTML;
+      reviewQueueBtn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>';
+      setTimeout(() => {
+        reviewQueueBtn.innerHTML = '<span>Approved (1)</span>';
+        setTimeout(() => {
+          reviewQueueBtn.innerHTML = originalText;
+        }, 1800);
+      }, 500);
+    });
+  }
+
+  // Micro-interaction: Share Room Copy Feedback
+  const shareBtn = document.getElementById('share-room-btn');
+  if (shareBtn) {
+    shareBtn.addEventListener('click', () => {
+      const icon = shareBtn.querySelector('span');
+      if (icon) {
+        icon.textContent = 'check';
+        icon.classList.add('text-primary');
+        setTimeout(() => {
+          icon.textContent = 'ios_share';
+          icon.classList.remove('text-primary');
+        }, 1500);
+      }
+    });
+  }
+</script></main></body></html>

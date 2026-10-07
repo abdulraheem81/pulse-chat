@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  pulse-app:
+    build: .
+    container_name: pulse-chat-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production

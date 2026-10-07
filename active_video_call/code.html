@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#0f131c;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-tertiary-fixed": "#410004", "on-background": "#dfe2ee", "surface-container-highest": "#31353e", "surface": "#0f131c", "primary-container": "#10b981", "on-tertiary-fixed-variant": "#930013", "on-secondary-fixed-variant": "#2f2ebe", "surface-container": "#1c2028", "background": "#0f131c", "inverse-surface": "#dfe2ee", "tertiary-container": "#ff7a73", "surface-container-lowest": "#0a0e16", "on-tertiary": "#68000a", "primary-fixed-dim": "#4edea3", "on-surface": "#dfe2ee", "surface-variant": "#31353e", "on-tertiary-container": "#79000e", "secondary-fixed-dim": "#c0c1ff", "on-error": "#690005", "on-primary-container": "#00422b", "on-secondary-container": "#b0b2ff", "primary": "#4edea3", "secondary-fixed": "#e1e0ff", "error": "#ffb4ab", "inverse-on-surface": "#2c3039", "tertiary-fixed": "#ffdad7", "on-secondary-fixed": "#07006c", "error-container": "#93000a", "on-error-container": "#ffdad6", "inverse-primary": "#006c49", "primary-fixed": "#6ffbbe", "tertiary-fixed-dim": "#ffb3ad", "on-surface-variant": "#bbcabf", "on-secondary": "#1000a9", "on-primary": "#003824", "surface-container-high": "#262a33", "outline-variant": "#3c4a42", "surface-dim": "#0f131c", "surface-tint": "#4edea3", "surface-bright": "#353942", "on-primary-fixed": "#002113", "tertiary": "#ffb3ad", "secondary-container": "#3131c0", "on-primary-fixed-variant": "#005236", "outline": "#86948a", "surface-container-low": "#181c24", "secondary": "#c0c1ff" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "margin-tablet": "1.5rem", "margin": "1rem", "space-xs": "0.25rem", "gutter-tablet": "1rem", "gutter-desktop": "1.5rem", "space-xl": "1.5rem", "space-2xl": "2rem", "space-lg": "1rem", "gutter": "0.75rem", "margin-desktop": "2rem", "space-md": "0.75rem", "space-3xl": "3rem", "space-sm": "0.5rem" }, fontFamily: { "headline-xl": ["Space Grotesk"], "headline-md": ["Space Grotesk"], "headline-sm": ["Space Grotesk"], "body-sm": ["Plus Jakarta Sans"], "body-lg": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "headline-xl-mobile": ["Space Grotesk"], "headline-lg": ["Space Grotesk"], "label-sm": ["JetBrains Mono"], "headline-lg-mobile": ["Space Grotesk"], "label-md": ["JetBrains Mono"], "label-lg": ["Plus Jakarta Sans"] }, fontSize: { "headline-xl": ["40px", { lineHeight: "48px", letterSpacing: "-0.03em", fontWeight: "700" }], "headline-md": ["22px", { lineHeight: "28px", fontWeight: "600" }], "headline-sm": ["18px", { lineHeight: "24px", fontWeight: "500" }], "body-sm": ["12px", { lineHeight: "18px", fontWeight: "400" }], "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }], "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }], "headline-xl-mobile": ["30px", { lineHeight: "38px", letterSpacing: "-0.02em", fontWeight: "700" }], "headline-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "600" }], "label-sm": ["10px", { lineHeight: "14px", letterSpacing: "0.04em", fontWeight: "500" }], "headline-lg-mobile": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" }], "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "500" }], "label-lg": ["13px", { lineHeight: "16px", letterSpacing: "0.01em", fontWeight: "600" }] } } } };</script></head><body class="bg-surface text-on-surface font-body-md text-body-md flex flex-col min-h-screen selection:bg-primary selection:text-on-primary"><header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-space-md flex items-center justify-between"><div class="flex items-center gap-space-sm"><button aria-label="Go back" class="w-11 h-11 rounded-full flex items-center justify-center text-on-surface hover:text-primary transition-colors" onclick="history.back()"><span class="material-symbols-outlined text-[24px]">arrow_back_ios_new</span></button><img alt="Pulse Chat Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1VVqECEku7nu-SNmaTumkvLqC6Du75jcKuxIjfW80GgX8hP5yDhYRSo_9O1vZrtEkc3xwwJKXD2XKFPkZTFmcl5eWUmxGJw5gZidepqxj8F8d6iI7Mrr2ovAp29LriospdenmqBc_hU_3bivGid_vLIcEqxCkX4BSBHlatUH5FDu-Y7Q6dO-w61juRPF9yCb9NsB1fsf-pGfq5dUW4leInNgNyDi33LBjm87MHtlys"/><h1 class="font-headline-sm text-headline-sm text-on-surface tracking-tight truncate max-w-[180px]">Active Call</h1></div><div class="flex items-center gap-space-sm"><button aria-label="Session Options" class="w-11 h-11 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[22px]">more_vert</span></button><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmKixmEoiU3rCABD8FoNxxeE5dcyxXdHyNj3GyY5JQ1ExiSrrXhJfIYCEIPUe41GMS1UY3ue31mheAuplxHoDrCvdYH_FRVL_j3c8cSD3i89qjl_DSPbgCUc0zY-DZr4ohKJ73AgYv8mgxBwLBdvjIrJA04HD7wE8gYyMH_YD__3rvUkT3x5EfFjQ2aC1hufLj6n0QLK_9-Lxf8Np3JKrE5Rk70J2w7a-kf2KuAQ"/></div></div></header><main class="flex flex-col relative w-full pt-16 bg-surface min-h-screen"><div class="flex flex-col w-full relative select-none overflow-hidden pb-safe">
+<!-- Interactive Canvas: Active Video Call Studio -->
+<div class="relative w-full px-space-md pt-space-xs pb-space-lg flex flex-col gap-space-md">
+<!-- HUD Sub-Header Bar: Call Status & Presence Metrics -->
+<div class="w-full flex items-center justify-between z-20">
+<!-- Session Telemetry Pill -->
+<div class="flex items-center gap-space-sm bg-surface-container-high/70 backdrop-blur-md px-space-md py-1.5 rounded-full shadow-sm">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label-md text-label-md text-on-surface tracking-wider" id="callTimer">14:28</span>
+</div>
+<span class="w-1 h-1 rounded-full bg-outline"></span>
+<div class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[15px]" style="font-variation-settings: 'FILL' 1;">lock</span>
+<span class="font-label-sm text-label-sm tracking-tight text-on-surface-variant uppercase">E2EE</span>
+</div>
+</div>
+<!-- Network Quality & Multi-Stream Toggle -->
+<div class="flex items-center gap-space-xs">
+<div class="flex items-center gap-1.5 bg-surface-container-high/70 backdrop-blur-md px- space-sm px-2.5 py-1.5 rounded-full">
+<span class="material-symbols-outlined text-primary text-[16px]">signal_cellular_alt</span>
+<span class="font-label-sm text-label-sm text-primary">24ms</span>
+</div>
+<button aria-label="Toggle group view" class="flex items-center gap-1 bg-surface-container-high/70 active:scale-95 transition-transform backdrop-blur-md px-3 py-1.5 rounded-full text-on-surface hover:text-primary" id="viewToggleBtn">
+<span class="material-symbols-outlined text-[16px]">grid_view</span>
+<span class="font-label-sm text-label-sm text-on-surface">3 in call</span>
+</button>
+</div>
+</div>
+<!-- Dominant Video Stage Frame -->
+<div class="relative w-full aspect-[3/4] max-h-[580px] rounded-xl overflow-hidden shadow-2xl bg-surface-container-lowest flex items-center justify-center">
+<!-- Remote High Fidelity Video Feed (Placeholder Image) -->
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700" data-alt="Cinematic portrait photo of Elena Rostova, a young creative technologist with sleek dark bob haircut, warm soft neon rim lighting in an obsidian minimalist studio setting, looking directly into camera during an active video conference, vibrant cyan and emerald atmospheric reflections, ultra detailed 8k cinematic depth." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDA-X-SMwX429ZSg5otvICzNxraAJSnzhPBdWQaFVSlZU5efRreipnDS4BZGPWTMGNb5aiATVdwVTZdLtaE3d5-FuFI_Ygap6PyPPx6P26usr1diUF3AsUPt54Hw8uH5BLV2eTBj9el59jPBzc5TX632PsONEBixPTIf6Bu6n16xgfEx9WJsUu9ddahXI_cRqKuQxB8sPF2XURGl-CiK0gbLa2QYc56Ldo2GQflwA')">
+</div>
+<!-- Tactical Glass Vignette Gradient Overlays -->
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/90 via-transparent to-surface-container-lowest/40 pointer-events-none"></div>
+<!-- Floating Picture-in-Picture (PiP) Self View Frame -->
+<div class="absolute top-space-md right-space-md w-28 h-40 rounded-xl overflow-hidden shadow-xl bg-surface-container-high z-30 group cursor-pointer active:scale-95 transition-all" id="pipContainer">
+<div class="w-full h-full bg-cover bg-center" data-alt="Self-portrait front-camera view of a confident modern user participating in an evening video conference call, ambient soft studio cyan glow highlights on face, modern home office background softly blurred." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDg8wvF-drbRQH1nXk3HJc8CNECu0AuusB5JBAoOEeBCVTOMOvrWJJ4wkJErOrMA_SY4NGmBfDOpZCt2MFVlS8UB6ReBqxdZyHqKxsCxyJKcO5bqBu4yg8qh-2MeB4Nc81Pu3tXjXeu202aKNOnQqGMQYWjVMb_xoD_z8sv_bvOVrCWSWH6V41TviSWmzXM39XEkAubh_75WquAwL-bsvdFzEdlFWHwlK3pscNokw')">
+</div>
+<!-- PiP Top Actions -->
+<div class="absolute top-1.5 right-1.5 flex items-center gap-1">
+<button aria-label="Flip camera" class="w-6 h-6 rounded-full bg-surface-container-lowest/70 backdrop-blur-sm flex items-center justify-center text-on-surface hover:text-primary" id="camFlipBtn">
+<span class="material-symbols-outlined text-[14px]">flip_camera_ios</span>
+</button>
+</div>
+<!-- PiP Bottom Meta Bar -->
+<div class="absolute bottom-1.5 inset-x-1.5 px-1.5 py-1 rounded-lg bg-surface-container-lowest/75 backdrop-blur-md flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface truncate">You</span>
+<div class="flex items-end gap-0.5 h-2.5">
+<span class="w-0.5 bg-primary rounded-full animate-bounce h-2"></span>
+<span class="w-0.5 bg-primary rounded-full animate-bounce h-3 delay-75"></span>
+<span class="w-0.5 bg-primary rounded-full animate-bounce h-1.5 delay-150"></span>
+</div>
+</div>
+</div>
+<!-- Secondary Participant Thumbnails (Group Mode Ribbon) -->
+<div class="absolute top-space-md left-space-md flex flex-col gap-space-xs z-20">
+<div class="relative w-11 h-11 rounded-full overflow-hidden shadow-md ring-2 ring-surface-container">
+<img class="w-full h-full object-cover" data-alt="Close up avatar shot of Marcus Vance, a product engineer wearing modern spectacles in a high-tech illuminated studio, natural smile, cinematic rim lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuARdh6soalAFqHAYA8j02LQzlrfVkUM5uSKlY3ekc6T5Ts7d2Hkt5tykjgJC-oxakVKZjTcu6iDLbWo_xpkJB9iUAbZsjWL6uMDWua6_nrVzLUEeBMojiM1uxLNbbc7v7gB-b9iLVN5w9IavQaOWhCmGsBgUo24BK_UpiCipViKwmzdAikbKmcl5Fy9AN7UW4k6cP8kJd6xfWguFN39lyxVH6IGKMw99PROFUNrAA"/>
+<div class="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-primary flex items-center justify-center">
+<span class="w-1.5 h-1.5 rounded-full bg-surface-container-lowest"></span>
+</div>
+</div>
+<div class="relative w-11 h-11 rounded-full overflow-hidden shadow-md ring-2 ring-surface-container">
+<img class="w-full h-full object-cover" data-alt="Close up avatar shot of Sofia Chen, a lead UI designer in an artistic studio bathed in ambient indigo light, focused expression." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUDibOkUrZzGMQn0sG7Gobv-TaWhqzPXoV8B4aJgcykWVQdtM9tLDLdw4nw-56Apgfwwnvt6XQdYu2udZ-NxdrjEcewXOaFqaoODAGLt101E861eEIvopCPDTbSP5LnDscsYSF8nVyq4Zs-J5mKGQMMDmMs7ap6m38oBPHjqvwtkfnisyDnL1LA2GQ9gm468foZb1bsmt9nYFde5ARM3fNI5ITNzFvniTkGmOrmg"/>
+<div class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-[10px] text-error">mic_off</span>
+</div>
+</div>
+</div>
+<!-- Remote Stream Badge & Audio Glow State -->
+<div class="absolute bottom-space-md left-space-md z-20 flex flex-col gap-1.5 max-w-[75%]">
+<div class="flex items-center gap-space-xs bg-surface-container-lowest/80 backdrop-blur-xl px-space-md py-1.5 rounded-full shadow-lg">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Elena Rostova</span>
+<span class="bg-surface-container-highest px-1.5 py-0.5 rounded text-[10px] font-label-sm text-primary tracking-wider uppercase">HD 60FPS</span>
+</div>
+<!-- Live Acoustic Waveform Visualizer -->
+<div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-lowest/60 backdrop-blur-md w-fit">
+<div class="flex items-center gap-1 h-3.5">
+<span class="w-0.5 bg-primary rounded-full h-2.5 animate-pulse"></span>
+<span class="w-0.5 bg-primary rounded-full h-3.5 animate-pulse delay-100"></span>
+<span class="w-0.5 bg-primary rounded-full h-1.5 animate-pulse delay-200"></span>
+<span class="w-0.5 bg-primary rounded-full h-3 animate-pulse delay-75"></span>
+<span class="w-0.5 bg-primary rounded-full h-2 animate-pulse delay-150"></span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Elena speaking...</span>
+</div>
+</div>
+<!-- Quick Reactive Floating Particle Container -->
+<div class="absolute inset-0 pointer-events-none overflow-hidden z-40" id="reactionField"></div>
+</div>
+<!-- Tactical Reactive Emoji Ribbon -->
+<div class="w-full flex items-center justify-center gap-space-sm z-30">
+<div class="flex items-center gap-2 bg-surface-container-high/60 backdrop-blur-xl px-space-md py-1.5 rounded-full shadow-md">
+<button aria-label="React heart" class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-surface-container-highest active:scale-125 transition-transform text-lg" onclick="spawnReaction('❤️')">❤️</button>
+<button aria-label="React fire" class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-surface-container-highest active:scale-125 transition-transform text-lg" onclick="spawnReaction('🔥')">🔥</button>
+<button aria-label="React clap" class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-surface-container-highest active:scale-125 transition-transform text-lg" onclick="spawnReaction('👏')">👏</button>
+<button aria-label="React rocket" class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-surface-container-highest active:scale-125 transition-transform text-lg" onclick="spawnReaction('🚀')">🚀</button>
+<button aria-label="React idea" class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-surface-container-highest active:scale-125 transition-transform text-lg" onclick="spawnReaction('💡')">💡</button>
+</div>
+</div>
+<!-- Unified Floating Glass Call Action Dock -->
+<div class="w-full flex justify-center z-30 mt-space-xs">
+<div class="w-full max-w-[390px] bg-surface-container/80 backdrop-blur-2xl rounded-full p-2 flex items-center justify-between shadow-2xl">
+<!-- Mic Toggle Button -->
+<button aria-label="Toggle microphone" class="w-13 h-13 w-[52px] h-[52px] rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg active:scale-95 transition-all" id="toggleMicBtn">
+<span class="material-symbols-outlined text-[24px]" id="micIcon">mic</span>
+</button>
+<!-- Video Camera Toggle Button -->
+<button aria-label="Toggle camera" class="w-[52px] h-[52px] rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all" id="toggleCamBtn">
+<span class="material-symbols-outlined text-[24px]" id="camIcon">videocam</span>
+</button>
+<!-- Screen Share Button -->
+<button aria-label="Share screen" class="w-[52px] h-[52px] rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all" id="shareScreenBtn">
+<span class="material-symbols-outlined text-[22px]">present_to_all</span>
+</button>
+<!-- Speaker / Audio Device Selector -->
+<button aria-label="Audio output" class="w-[52px] h-[52px] rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all relative" id="audioSourceBtn">
+<span class="material-symbols-outlined text-[22px]">volume_up</span>
+<span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary"></span>
+</button>
+<!-- High Priority End Call Button -->
+<button aria-label="Leave call" class="w-[52px] h-[52px] rounded-full bg-error-container text-on-error-container flex items-center justify-center active:scale-90 transition-all shadow-[0_4px_20px_rgba(239,68,68,0.4)]" id="endCallBtn">
+<span class="material-symbols-outlined text-[26px]" style="font-variation-settings: 'FILL' 1;">call_end</span>
+</button>
+</div>
+</div>
+<!-- Active Call Meta Footer Toast -->
+<div class="w-full flex items-center justify-center pb-2">
+<div class="flex items-center gap-2 px-space-md py-1 rounded-full bg-surface-container-lowest/40 backdrop-blur-sm">
+<span class="material-symbols-outlined text-primary text-[14px]">spatial_audio</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Spatial Audio 360° Enabled</span>
+</div>
+</div>
+</div>
+</div>
+<script>
+  // Dynamic Call Duration Timer
+  let seconds = 868; // starts at 14:28
+  const timerEl = document.getElementById('callTimer');
+  if (timerEl) {
+    setInterval(() => {
+      seconds++;
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      timerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }, 1000);
+  }
+
+  // Reactive Emoji Floating Spark Generator
+  function spawnReaction(emoji) {
+    const container = document.getElementById('reactionField');
+    if (!container) return;
+
+    const el = document.createElement('div');
+    el.textContent = emoji;
+    el.style.position = 'absolute';
+    el.style.left = `${Math.floor(Math.random() * 60) + 20}%`;
+    el.style.bottom = '20px';
+    el.style.fontSize = '32px';
+    el.style.transition = 'all 1.6s cubic-bezier(0.2, 0.8, 0.2, 1)';
+    el.style.opacity = '1';
+    el.style.transform = `scale(0.6) translateY(0) rotate(${Math.random() * 30 - 15}deg)`;
+    el.style.zIndex = '50';
+
+    container.appendChild(el);
+
+    requestAnimationFrame(() => {
+      el.style.transform = `scale(1.4) translateY(-320px) rotate(${Math.random() * 40 - 20}deg)`;
+      el.style.opacity = '0';
+    });
+
+    setTimeout(() => {
+      el.remove();
+    }, 1600);
+  }
+
+  // Microphone Active Toggle Interaction
+  const micBtn = document.getElementById('toggleMicBtn');
+  const micIcon = document.getElementById('micIcon');
+  let isMicActive = true;
+
+  if (micBtn && micIcon) {
+    micBtn.addEventListener('click', () => {
+      isMicActive = !isMicActive;
+      if (isMicActive) {
+        micBtn.className = 'w-[52px] h-[52px] rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg active:scale-95 transition-all';
+        micIcon.textContent = 'mic';
+      } else {
+        micBtn.className = 'w-[52px] h-[52px] rounded-full bg-error-container text-on-error flex items-center justify-center shadow-lg active:scale-95 transition-all';
+        micIcon.textContent = 'mic_off';
+      }
+    });
+  }
+
+  // Camera Toggle Interaction
+  const camBtn = document.getElementById('toggleCamBtn');
+  const camIcon = document.getElementById('camIcon');
+  let isCamActive = true;
+
+  if (camBtn && camIcon) {
+    camBtn.addEventListener('click', () => {
+      isCamActive = !isCamActive;
+      if (isCamActive) {
+        camBtn.className = 'w-[52px] h-[52px] rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all';
+        camIcon.textContent = 'videocam';
+      } else {
+        camBtn.className = 'w-[52px] h-[52px] rounded-full bg-error-container text-on-error flex items-center justify-center active:scale-95 transition-all';
+        camIcon.textContent = 'videocam_off';
+      }
+    });
+  }
+
+  // End Call Feedback Trigger
+  const endCallBtn = document.getElementById('endCallBtn');
+  if (endCallBtn) {
+    endCallBtn.addEventListener('click', () => {
+      if (confirm('Leave current video session?')) {
+        history.back();
+      }
+    });
+  }
+</script></main></body></html>

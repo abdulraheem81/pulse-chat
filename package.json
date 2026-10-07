@@ -1,0 +1,13 @@
+{
+  "name": "obsidian-chat-app",
+  "version": "1.0.0",
+  "description": "Obsidian Audio, Video & Text Chat Application with Real-Time WebRTC, WebSockets, and Audio Space Rooms",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}
