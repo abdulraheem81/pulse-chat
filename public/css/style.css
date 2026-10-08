@@ -101,3 +101,53 @@
 .grab-handle:active {
   cursor: grabbing;
 }
+
+/* Multi-Peer Video Grid Layouts */
+.peer-grid-1 {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+.peer-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: 1fr;
+}
+.peer-grid-3, .peer-grid-4 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+.peer-grid-5, .peer-grid-6 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 640px) {
+  .peer-grid-2 {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Video Card Aesthetics */
+.video-peer-card {
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+  background-color: #121620;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.video-peer-card.speaking {
+  border-color: rgba(78, 222, 163, 0.7);
+  box-shadow: 0 0 20px rgba(78, 222, 163, 0.25);
+}
+
+/* Sound Wave Bars */
+.sound-bar {
+  transition: height 0.08s ease;
+}
+

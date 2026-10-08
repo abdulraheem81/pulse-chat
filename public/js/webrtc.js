@@ -1,12 +1,14 @@
 /**
  * WebRTC and Media Stream Manager
- * Handles local media capture, screen sharing, peer connections, and Web Audio API analysis
+ * Supports multi-peer WebRTC mesh, active keep-alive heartbeats,
+ * screen wake locks, automated ICE recovery, and synthetic multi-peer generation.
  */
 
 class WebRTCManager {
-  constructor(socket, onRemoteStreamCallback, onAudioVolumeCallback, onDataChannelMessageCallback, onDataChannelStateChangeCallback) {
+  constructor(socket, onRemoteStreamCallback, onRemoteStreamRemovedCallback, onAudioVolumeCallback, onDataChannelMessageCallback, onDataChannelStateChangeCallback) {
     this.socket = socket;
     this.onRemoteStream = onRemoteStreamCallback;
+    this.onRemoteStreamRemoved = onRemoteStreamRemovedCallback;
     this.onAudioVolume = onAudioVolumeCallback;
     this.onDataChannelMessage = onDataChannelMessageCallback;
     this.onDataChannelStateChange = onDataChannelStateChangeCallback;
@@ -14,10 +16,13 @@ class WebRTCManager {
     this.localStream = null;
     this.screenStream = null;
     this.peerConnections = new Map(); // socketId -> RTCPeerConnection
-    this.dataChannels = new Map(); // socketId -> RTCDataChannel
+    this.dataChannels = new Map();    // socketId -> RTCDataChannel
+    this.remoteStreams = new Map();   // socketId -> MediaStream
     this.audioContext = null;
     this.analyser = null;
     this.animationFrameId = null;
+    this.keepAliveInterval = null;
+    this.wakeLock = null;
 
     this.isAudioMuted = false;
     this.isVideoMuted = false;
@@ -27,14 +32,68 @@ class WebRTCManager {
     this.rtcConfig = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-      ]
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' }
+      ],
+      iceCandidatePoolSize: 10
     };
+
+    this.startKeepAlive();
+    this.requestWakeLock();
+  }
+
+  /**
+   * Request Screen WakeLock to prevent browser sleep and keep call active indefinitely
+   */
+  async requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        this.wakeLock = await navigator.wakeLock.request('screen');
+        console.log('[Endurance] Screen WakeLock acquired — call will stay active indefinitely');
+        
+        document.addEventListener('visibilitychange', async () => {
+          if (this.wakeLock !== null && document.visibilityState === 'visible') {
+            try {
+              this.wakeLock = await navigator.wakeLock.request('screen');
+            } catch (e) {
+              console.warn('[Endurance] WakeLock re-request:', e);
+            }
+          }
+        });
+      }
+    } catch (err) {
+      console.warn('[Endurance] WakeLock not supported or denied:', err.message);
+    }
+  }
+
+  /**
+   * Keep-Alive Heartbeat over RTCDataChannels and Socket to prevent router/NAT timeouts
+   */
+  startKeepAlive() {
+    if (this.keepAliveInterval) clearInterval(this.keepAliveInterval);
+    this.keepAliveInterval = setInterval(() => {
+      // 1. DataChannel ping
+      const pingPayload = JSON.stringify({ type: '__keep_alive__', ts: Date.now() });
+      this.dataChannels.forEach((dc) => {
+        if (dc && dc.readyState === 'open') {
+          try {
+            dc.send(pingPayload);
+          } catch (e) {
+            console.warn('[Keep-Alive] Ping error:', e);
+          }
+        }
+      });
+
+      // 2. Socket keep-alive
+      if (this.socket && this.socket.connected) {
+        this.socket.emit('room-keep-alive', { roomId: 'pulse-room' });
+      }
+    }, 8000);
   }
 
   /**
    * Initializes local media stream (camera + mic)
-   * If hardware is unavailable or blocked, falls back gracefully to a synthetic stream.
+   * Falls back gracefully to synthetic canvas stream if hardware is unavailable.
    */
   async initLocalStream(videoEl) {
     try {
@@ -45,12 +104,12 @@ class WebRTCManager {
         });
       }
     } catch (err) {
-      console.warn('Real camera/mic unavailable or permission denied. Falling back to synthetic media stream:', err.message);
-      this.localStream = this.createSyntheticStream();
+      console.warn('Camera/mic permission denied or hardware unavailable. Using synthetic feed:', err.message);
+      this.localStream = this.createSyntheticStream('You', '#4edea3');
     }
 
     if (!this.localStream) {
-      this.localStream = this.createSyntheticStream();
+      this.localStream = this.createSyntheticStream('You', '#4edea3');
     }
 
     if (videoEl && this.localStream) {
@@ -64,9 +123,9 @@ class WebRTCManager {
   }
 
   /**
-   * Create an animated synthetic Canvas & Audio stream if hardware camera is not accessible
+   * Create an animated synthetic Canvas & Audio stream
    */
-  createSyntheticStream() {
+  createSyntheticStream(label = 'You', color = '#4edea3') {
     const canvas = document.createElement('canvas');
     canvas.width = 640;
     canvas.height = 480;
@@ -75,34 +134,49 @@ class WebRTCManager {
 
     function draw() {
       frame++;
-      // Obsidian futuristic visual feed
       ctx.fillStyle = '#0f131c';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      const grad = ctx.createRadialGradient(320, 240, 40, 320, 240, 260);
-      grad.addColorStop(0, 'rgba(78, 222, 163, 0.25)');
-      grad.addColorStop(0.6, 'rgba(99, 102, 241, 0.15)');
-      grad.addColorStop(1, 'rgba(15, 19, 28, 0.95)');
+      const grad = ctx.createRadialGradient(320, 240, 30, 320, 240, 280);
+      grad.addColorStop(0, 'rgba(78, 222, 163, 0.22)');
+      grad.addColorStop(0.5, 'rgba(99, 102, 241, 0.12)');
+      grad.addColorStop(1, 'rgba(15, 19, 28, 0.98)');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Rotating radar circle
-      ctx.strokeStyle = '#4edea3';
+      // Rotating scanner ring
+      ctx.save();
+      ctx.translate(320, 240);
+      ctx.rotate(frame * 0.02);
+      ctx.strokeStyle = color;
       ctx.lineWidth = 2;
+      ctx.setLineDash([12, 8]);
       ctx.beginPath();
-      const radius = 90 + Math.sin(frame * 0.05) * 10;
-      ctx.arc(320, 240, radius, 0, Math.PI * 2);
+      const r = 95 + Math.sin(frame * 0.06) * 8;
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.restore();
 
-      // User avatar symbol
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '600 24px "Space Grotesk", sans-serif';
+      // Inner pulse
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(320, 240, 32 + Math.sin(frame * 0.08) * 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Person Icon
+      ctx.fillStyle = '#0f131c';
+      ctx.font = 'bold 26px "Space Grotesk", sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('LOCAL USER CAM', 320, 235);
+      ctx.fillText('👤', 320, 248);
+
+      // Label
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '600 20px "Space Grotesk", sans-serif';
+      ctx.fillText(label.toUpperCase(), 320, 320);
 
       ctx.fillStyle = '#bbcabf';
-      ctx.font = '14px "JetBrains Mono", monospace';
-      ctx.fillText(`HD STREAM • ${Math.round(60 + Math.sin(frame * 0.1) * 2)} FPS`, 320, 265);
+      ctx.font = '12px "JetBrains Mono", monospace';
+      ctx.fillText(`HD 60FPS • ZERO LOSS • ${frame % 60}s`, 320, 345);
 
       requestAnimationFrame(draw);
     }
@@ -110,7 +184,7 @@ class WebRTCManager {
 
     const videoStream = canvas.captureStream(30);
 
-    // Synthetic audio oscillator
+    // Audio Oscillator
     let audioStreamTrack;
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -119,13 +193,13 @@ class WebRTCManager {
       const dst = actx.createMediaStreamDestination();
       osc.frequency.setValueAtTime(440, actx.currentTime);
       const gain = actx.createGain();
-      gain.gain.setValueAtTime(0.001, actx.currentTime); // very low volume
+      gain.gain.setValueAtTime(0.001, actx.currentTime);
       osc.connect(gain);
       gain.connect(dst);
       osc.start();
       audioStreamTrack = dst.stream.getAudioTracks()[0];
     } catch (e) {
-      console.log('Synth audio skip:', e);
+      console.log('Synth audio bypass:', e);
     }
 
     if (audioStreamTrack) {
@@ -168,7 +242,7 @@ class WebRTCManager {
         for (let i = 0; i < bufferLength; i++) {
           sum += dataArray[i];
         }
-        const average = sum / bufferLength; // 0 to 255
+        const average = sum / bufferLength;
         const normalized = Math.min(100, Math.round((average / 255) * 100));
 
         if (this.onAudioVolume) {
@@ -219,7 +293,6 @@ class WebRTCManager {
       this.localStream.getTracks().forEach(t => t.stop());
     }
     await this.initLocalStream(videoEl);
-    // Replace track in existing peer connections
     if (this.localStream) {
       const newVideoTrack = this.localStream.getVideoTracks()[0];
       if (newVideoTrack) {
@@ -238,7 +311,6 @@ class WebRTCManager {
    */
   async toggleScreenShare(localVideoEl) {
     if (this.isScreenSharing) {
-      // Revert to camera
       this.stopScreenShare(localVideoEl);
       return false;
     }
@@ -259,7 +331,6 @@ class WebRTCManager {
           localVideoEl.srcObject = this.screenStream;
         }
 
-        // Replace track on all peer connections
         this.peerConnections.forEach(pc => {
           const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
           if (sender) {
@@ -298,7 +369,7 @@ class WebRTCManager {
   }
 
   /**
-   * Setup RTCDataChannel event handlers for peer-to-peer data transmission
+   * Setup RTCDataChannel event handlers
    */
   setupDataChannel(targetSocketId, dataChannel) {
     this.dataChannels.set(targetSocketId, dataChannel);
@@ -328,6 +399,17 @@ class WebRTCManager {
     dataChannel.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
+        // Intercept internal keep-alive heartbeats to keep connection active
+        if (payload && payload.type === '__keep_alive__') {
+          try {
+            dataChannel.send(JSON.stringify({ type: '__keep_alive_ack__', ts: Date.now() }));
+          } catch (e) {}
+          return;
+        }
+        if (payload && payload.type === '__keep_alive_ack__') {
+          return;
+        }
+
         console.log(`[P2P] Received direct message from peer ${targetSocketId}:`, payload);
         if (this.onDataChannelMessage) {
           this.onDataChannelMessage(targetSocketId, payload);
@@ -369,6 +451,16 @@ class WebRTCManager {
     return false;
   }
 
+  getActivePeerCount() {
+    let count = 0;
+    this.peerConnections.forEach(pc => {
+      if (pc.connectionState === 'connected' || pc.iceConnectionState === 'connected') {
+        count++;
+      }
+    });
+    return count;
+  }
+
   /**
    * WebRTC Peer Connection Setup
    */
@@ -404,11 +496,24 @@ class WebRTCManager {
       }
     };
 
+    // Automated ICE Recovery & Connection State Monitoring to make call last longer
+    pc.oniceconnectionstatechange = () => {
+      console.log(`[P2P] Peer ${targetSocketId} ICE state: ${pc.iceConnectionState}`);
+      if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+        console.warn(`[P2P] Triggering ICE recovery for ${targetSocketId}...`);
+        if (pc.restartIce) {
+          pc.restartIce();
+        }
+      }
+    };
+
     // Remote Track received
     pc.ontrack = (event) => {
       console.log('Received remote track from:', targetSocketId, event.streams[0]);
+      const stream = event.streams[0];
+      this.remoteStreams.set(targetSocketId, stream);
       if (this.onRemoteStream) {
-        this.onRemoteStream(targetSocketId, event.streams[0]);
+        this.onRemoteStream(targetSocketId, stream);
       }
     };
 
@@ -448,7 +553,11 @@ class WebRTCManager {
       }
     } else if (signalData.type === 'candidate') {
       if (pc) {
-        await pc.addIceCandidate(new RTCIceCandidate(signalData.candidate));
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(signalData.candidate));
+        } catch (e) {
+          console.warn('[P2P] Candidate error handled:', e);
+        }
       }
     }
   }
@@ -464,9 +573,21 @@ class WebRTCManager {
       pc.close();
       this.peerConnections.delete(socketId);
     }
+    this.remoteStreams.delete(socketId);
+    if (this.onRemoteStreamRemoved) {
+      this.onRemoteStreamRemoved(socketId);
+    }
   }
 
   cleanUp() {
+    if (this.keepAliveInterval) {
+      clearInterval(this.keepAliveInterval);
+      this.keepAliveInterval = null;
+    }
+    if (this.wakeLock) {
+      this.wakeLock.release().catch(() => {});
+      this.wakeLock = null;
+    }
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
     }
@@ -482,6 +603,7 @@ class WebRTCManager {
     this.dataChannels.clear();
     this.peerConnections.forEach(pc => pc.close());
     this.peerConnections.clear();
+    this.remoteStreams.clear();
     if (this.audioContext && this.audioContext.state !== 'closed') {
       this.audioContext.close();
       this.audioContext = null;
