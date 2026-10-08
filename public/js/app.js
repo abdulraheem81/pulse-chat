@@ -30,7 +30,9 @@
     layoutMode: 'grid',    // 'grid' or 'spotlight'
     pinnedPeerId: null,    // socketId of pinned/spotlight peer
     globalFitMode: 'cover', // 'cover' or 'contain'
-    pipSizeIndex: 1        // 0: S (130px), 1: M (180px), 2: L (260px), 3: XL (340px)
+    pipSizeIndex: 1,       // 0: S (130px), 1: M (180px), 2: L (260px), 3: XL (340px)
+    mobileView: 'stage',   // 'stage' or 'chat'
+    unreadChatCount: 0
   };
 
   const PIP_SIZES = [
@@ -59,6 +61,14 @@
   const typingIndicator = document.getElementById('typing-indicator');
   const typingText = document.getElementById('typing-text');
   const toastEl = document.getElementById('app-toast');
+
+  // Mobile View Navigation DOM elements
+  const mobileTabCallBtn = document.getElementById('mobileTabCallBtn');
+  const mobileTabChatBtn = document.getElementById('mobileTabChatBtn');
+  const mobileUnreadBadge = document.getElementById('mobileUnreadBadge');
+  const dockChatBtn = document.getElementById('dockChatBtn');
+  const dockUnreadBadge = document.getElementById('dockUnreadBadge');
+  const mobileBackToCallBtn = document.getElementById('mobileBackToCallBtn');
 
   // Bandwidth & Low-Data Controls
   const bandwidthBtn = document.getElementById('bandwidthBtn');
@@ -613,6 +623,58 @@
     chatStream.scrollTop = chatStream.scrollHeight;
   }
 
+  function setMobileView(view) {
+    state.mobileView = view;
+    if (view === 'stage') {
+      document.body.classList.remove('mobile-view-chat');
+      document.body.classList.add('mobile-view-stage');
+      if (mobileTabCallBtn) {
+        mobileTabCallBtn.className = 'flex items-center gap-1 px-3 py-1 rounded-full bg-primary text-on-primary font-bold shadow-sm transition-all';
+      }
+      if (mobileTabChatBtn) {
+        mobileTabChatBtn.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-on-surface-variant hover:text-on-surface transition-all relative';
+      }
+    } else {
+      document.body.classList.remove('mobile-view-stage');
+      document.body.classList.add('mobile-view-chat');
+      if (mobileTabChatBtn) {
+        mobileTabChatBtn.className = 'flex items-center gap-1 px-3 py-1 rounded-full bg-primary text-on-primary font-bold shadow-sm transition-all relative';
+      }
+      if (mobileTabCallBtn) {
+        mobileTabCallBtn.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-on-surface-variant hover:text-on-surface transition-all';
+      }
+      // Reset unread counter when viewing chat
+      state.unreadChatCount = 0;
+      updateUnreadBadges();
+      // Scroll chat to bottom
+      if (chatStream) {
+        setTimeout(() => {
+          chatStream.scrollTop = chatStream.scrollHeight;
+        }, 50);
+      }
+    }
+  }
+
+  function updateUnreadBadges() {
+    if (mobileUnreadBadge) {
+      if (state.unreadChatCount > 0) {
+        mobileUnreadBadge.textContent = state.unreadChatCount > 9 ? '9+' : state.unreadChatCount;
+        mobileUnreadBadge.classList.remove('hidden');
+        mobileUnreadBadge.classList.add('flex');
+      } else {
+        mobileUnreadBadge.classList.add('hidden');
+        mobileUnreadBadge.classList.remove('flex');
+      }
+    }
+    if (dockUnreadBadge) {
+      if (state.unreadChatCount > 0) {
+        dockUnreadBadge.classList.remove('hidden');
+      } else {
+        dockUnreadBadge.classList.add('hidden');
+      }
+    }
+  }
+
   function appendChatMessage(msg) {
     if (!chatStream) return;
 
@@ -638,6 +700,12 @@
 
     chatStream.appendChild(div);
     chatStream.scrollTop = chatStream.scrollHeight;
+
+    // Handle mobile unread badge if message received from peer while on stage view
+    if (!isMe && state.mobileView === 'stage') {
+      state.unreadChatCount++;
+      updateUnreadBadges();
+    }
   }
 
   function escapeHtml(str) {
@@ -780,6 +848,20 @@
   // ==========================================
 
   function setupEvents() {
+    // Mobile View Navigation
+    if (mobileTabCallBtn) {
+      mobileTabCallBtn.addEventListener('click', () => setMobileView('stage'));
+    }
+    if (mobileTabChatBtn) {
+      mobileTabChatBtn.addEventListener('click', () => setMobileView('chat'));
+    }
+    if (dockChatBtn) {
+      dockChatBtn.addEventListener('click', () => setMobileView('chat'));
+    }
+    if (mobileBackToCallBtn) {
+      mobileBackToCallBtn.addEventListener('click', () => setMobileView('stage'));
+    }
+
     // Copy Invite Links
     const copyBtns = [
       document.getElementById('copy-invite-btn'),

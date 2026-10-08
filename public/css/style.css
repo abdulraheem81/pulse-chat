@@ -1,20 +1,45 @@
 @layer base {
   html, body {
     width: 100vw;
+    height: 100%;
     margin: 0;
     padding: 0;
     background-color: #0f131c;
     color: #dfe2ee;
     font-family: 'Plus Jakarta Sans', sans-serif;
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     overscroll-behavior: none;
+    height: 100dvh;
+    min-height: -webkit-fill-available;
+    touch-action: manipulation;
   }
   .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom, 16px);
+    padding-bottom: max(env(safe-area-inset-bottom, 12px), 12px);
   }
   .pt-safe {
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: max(env(safe-area-inset-top, 0px), 0px);
+  }
+}
+
+/* Mobile View Switching (< 1024px) */
+@media (max-width: 1023px) {
+  .mobile-view-stage #chatSection {
+    display: none !important;
+  }
+  .mobile-view-stage #videoSection {
+    display: flex !important;
+    height: 100% !important;
+    width: 100% !important;
+  }
+  .mobile-view-chat #videoSection {
+    display: none !important;
+  }
+  .mobile-view-chat #chatSection {
+    display: flex !important;
+    height: 100% !important;
+    width: 100% !important;
   }
 }
 

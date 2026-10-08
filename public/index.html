@@ -49,58 +49,71 @@
   <script src="/socket.io/socket.io.js"></script>
 </head>
 
-<body class="bg-surface text-on-surface font-body h-screen flex flex-col overflow-hidden selection:bg-primary selection:text-on-primary">
+<body class="mobile-view-stage bg-surface text-on-surface font-body h-screen flex flex-col overflow-hidden selection:bg-primary selection:text-on-primary">
 
   <!-- ================= TOP APP HEADER ================= -->
-  <header class="h-16 px-4 flex items-center justify-between border-b border-white/10 bg-surface-container-low/80 backdrop-blur-xl shrink-0 z-30">
+  <header class="h-14 sm:h-16 px-3 sm:px-4 pt-safe flex items-center justify-between border-b border-white/10 bg-surface-container-low/90 backdrop-blur-xl shrink-0 z-30">
     <!-- Brand / Title -->
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary ring-1 ring-primary/40 shadow-sm">
-        <span class="material-symbols-outlined text-[24px]">sensors</span>
+    <div class="flex items-center gap-2 sm:gap-3">
+      <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary ring-1 ring-primary/40 shadow-sm shrink-0">
+        <span class="material-symbols-outlined text-[20px] sm:text-[24px]">sensors</span>
       </div>
       <div>
-        <div class="flex items-center gap-2">
-          <h1 class="font-headline font-bold text-lg text-on-surface leading-none">Pulse</h1>
-          <span class="bg-primary/20 text-primary text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold tracking-wide uppercase">P2P Live</span>
+        <div class="flex items-center gap-1.5 sm:gap-2">
+          <h1 class="font-headline font-bold text-base sm:text-lg text-on-surface leading-none">Pulse</h1>
+          <span class="bg-primary/20 text-primary text-[9px] sm:text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold tracking-wide uppercase">P2P</span>
         </div>
-        <p class="font-mono text-[11px] text-primary tracking-wider uppercase mt-0.5 font-semibold">Real-Time Audio • Video • Chat</p>
+        <p class="font-mono text-[10px] sm:text-[11px] text-primary tracking-wider uppercase mt-0.5 font-semibold hidden xs:block">Real-Time P2P Chat</p>
       </div>
     </div>
 
+    <!-- Mobile Segmented View Switcher (Only visible on screens < 1024px) -->
+    <div class="flex lg:hidden items-center bg-surface-container-highest/80 p-0.5 rounded-full border border-white/10 text-xs font-mono">
+      <button id="mobileTabCallBtn" class="flex items-center gap-1 px-3 py-1 rounded-full bg-primary text-on-primary font-bold shadow-sm transition-all" title="View Call Stage">
+        <span class="material-symbols-outlined text-[15px]">videocam</span>
+        <span>Call</span>
+      </button>
+      <button id="mobileTabChatBtn" class="flex items-center gap-1 px-3 py-1 rounded-full text-on-surface-variant hover:text-on-surface transition-all relative" title="View Text Chat">
+        <span class="material-symbols-outlined text-[15px]">chat</span>
+        <span>Chat</span>
+        <span id="mobileUnreadBadge" class="hidden absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-on-primary text-[9px] font-bold flex items-center justify-center">0</span>
+      </button>
+    </div>
+
     <!-- Header Telemetry & Quick Actions -->
-    <div class="flex items-center gap-2 sm:gap-3">
+    <div class="flex items-center gap-1.5 sm:gap-2.5">
       <!-- Network Quality & Low Bandwidth Mode Selector -->
-      <button id="bandwidthBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container hover:bg-surface-container-high border border-primary/20 font-mono text-xs text-on-surface shadow-sm transition-all active:scale-95" title="Click to change Bandwidth Mode (Data Saver / Balanced / HD / Audio Only)">
-        <span class="material-symbols-outlined text-primary text-[15px]" id="bandwidthIcon">speed</span>
-        <span id="bandwidthLabel" class="text-primary font-bold">Data Saver (160k)</span>
+      <button id="bandwidthBtn" class="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-surface-container hover:bg-surface-container-high border border-primary/20 font-mono text-[11px] sm:text-xs text-on-surface shadow-sm transition-all active:scale-95" title="Click to change Bandwidth Mode (Data Saver / Balanced / HD / Audio Only)">
+        <span class="material-symbols-outlined text-primary text-[14px] sm:text-[15px]" id="bandwidthIcon">speed</span>
+        <span id="bandwidthLabel" class="text-primary font-bold text-[11px] sm:text-xs">Data Saver</span>
         <span id="netLatency" class="text-on-surface-variant text-[11px] hidden xl:inline">• 24ms</span>
       </button>
 
-      <!-- Online Peers Status Badge -->
-      <div id="p2p-badge" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container border border-white/5 shadow-sm text-xs font-mono">
+      <!-- Online Peers Status Badge (Hidden on very narrow mobile screens to save space) -->
+      <div id="p2p-badge" class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container border border-white/5 shadow-sm text-xs font-mono">
         <span id="p2p-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
         <span id="p2p-status-label" class="text-on-surface-variant font-medium">Waiting for peer</span>
       </div>
 
       <!-- Persistent Call Timer (Call Endurance) -->
-      <div class="flex items-center gap-1 px-3 py-1.5 rounded-full bg-surface-container border border-primary/20 font-mono text-xs text-on-surface shadow-sm" title="Call Active: Keep-alive heartbeat active">
-        <span class="material-symbols-outlined text-primary text-[15px]">schedule</span>
+      <div class="hidden sm:flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-surface-container border border-primary/20 font-mono text-[11px] sm:text-xs text-on-surface shadow-sm" title="Call Active: Keep-alive heartbeat active">
+        <span class="material-symbols-outlined text-primary text-[14px] sm:text-[15px]">schedule</span>
         <span id="call-timer" class="font-bold text-primary">00:00</span>
       </div>
 
       <!-- Copy Invite Link Button -->
-      <button id="copy-invite-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-on-primary text-xs font-semibold shadow-lg hover:brightness-110 active:scale-95 transition-all">
-        <span class="material-symbols-outlined text-[16px]">share</span>
-        <span>Copy Invite Link</span>
+      <button id="copy-invite-btn" class="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-primary text-on-primary text-[11px] sm:text-xs font-semibold shadow-lg hover:brightness-110 active:scale-95 transition-all">
+        <span class="material-symbols-outlined text-[15px] sm:text-[16px]">share</span>
+        <span class="hidden sm:inline">Invite Link</span>
       </button>
     </div>
   </header>
 
   <!-- ================= MAIN UNIFIED WORKSPACE ================= -->
-  <main class="flex-1 flex flex-col lg:flex-row overflow-hidden p-2 sm:p-4 gap-3 sm:gap-4">
+  <main class="flex-1 flex flex-col lg:flex-row overflow-hidden p-1.5 sm:p-3 lg:p-4 gap-2 sm:gap-3 lg:gap-4">
 
     <!-- ================= LEFT: VIDEO & AUDIO STAGE (ONLINE PEERS ONLY) ================= -->
-    <section class="flex-1 flex flex-col rounded-2xl bg-surface-container-lowest border border-white/5 overflow-hidden shadow-2xl relative min-h-[340px]">
+    <section id="videoSection" class="flex-1 flex flex-col rounded-xl sm:rounded-2xl bg-surface-container-lowest border border-white/5 overflow-hidden shadow-2xl relative min-h-0">
       
       <!-- Video Grid Viewport -->
       <div id="videoStage" class="flex-1 relative flex items-center justify-center overflow-hidden bg-black/40 p-2 sm:p-3">
@@ -218,62 +231,72 @@
       </div>
 
       <!-- Call Action Dock -->
-      <div class="h-16 px-4 bg-surface-container-low/90 backdrop-blur-xl border-t border-white/5 flex items-center justify-between shrink-0">
+      <div class="h-14 sm:h-16 px-2 sm:px-4 bg-surface-container-low/95 backdrop-blur-xl border-t border-white/5 flex items-center justify-between shrink-0 pb-safe">
         <!-- Media Controls -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 sm:gap-2">
           <!-- Toggle Microphone -->
-          <button id="toggleMicBtn" class="w-11 h-11 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg active:scale-95 transition-all" title="Toggle Microphone">
-            <span class="material-symbols-outlined text-[22px]" id="micIcon">mic</span>
+          <button id="toggleMicBtn" class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg active:scale-95 transition-all" title="Toggle Microphone">
+            <span class="material-symbols-outlined text-[20px] sm:text-[22px]" id="micIcon">mic</span>
           </button>
 
           <!-- Toggle Video Camera -->
-          <button id="toggleCamBtn" class="w-11 h-11 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all" title="Toggle Camera">
-            <span class="material-symbols-outlined text-[22px]" id="camIcon">videocam</span>
+          <button id="toggleCamBtn" class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all" title="Toggle Camera">
+            <span class="material-symbols-outlined text-[20px] sm:text-[22px]" id="camIcon">videocam</span>
           </button>
 
-          <!-- Screen Share -->
-          <button id="shareScreenBtn" class="w-11 h-11 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all" title="Share Screen">
-            <span class="material-symbols-outlined text-[20px]">present_to_all</span>
+          <!-- Screen Share (Hidden on small mobile screens where screen sharing is typically unsupported or cramped) -->
+          <button id="shareScreenBtn" class="hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-surface-container-highest text-on-surface items-center justify-center hover:text-primary active:scale-95 transition-all" title="Share Screen">
+            <span class="material-symbols-outlined text-[19px] sm:text-[20px]">present_to_all</span>
           </button>
 
           <!-- Audio-Only Low-Data Toggle Button -->
-          <button id="audioOnlyBtn" class="w-11 h-11 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all" title="Toggle Audio-Only (Zero Video Data Saver)">
-            <span class="material-symbols-outlined text-[20px]" id="audioOnlyIcon">headset</span>
+          <button id="audioOnlyBtn" class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all" title="Toggle Audio-Only (Zero Video Data Saver)">
+            <span class="material-symbols-outlined text-[19px] sm:text-[20px]" id="audioOnlyIcon">headset</span>
           </button>
 
-          <!-- Flip Camera -->
-          <button id="camFlipBtn" class="w-11 h-11 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all" title="Flip Camera">
-            <span class="material-symbols-outlined text-[20px]">flip_camera_ios</span>
+          <!-- Flip Camera (Crucial for mobile phones) -->
+          <button id="camFlipBtn" class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all" title="Flip Camera">
+            <span class="material-symbols-outlined text-[19px] sm:text-[20px]">flip_camera_ios</span>
           </button>
 
           <!-- Fullscreen Stage Button in Dock -->
-          <button id="dockFullscreenBtn" class="w-11 h-11 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all" title="Full Screen View">
-            <span class="material-symbols-outlined text-[20px]" id="dockFullscreenIcon">fullscreen</span>
+          <button id="dockFullscreenBtn" class="hidden xs:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-surface-container-highest text-on-surface items-center justify-center hover:text-primary active:scale-95 transition-all" title="Full Screen View">
+            <span class="material-symbols-outlined text-[19px] sm:text-[20px]" id="dockFullscreenIcon">fullscreen</span>
+          </button>
+
+          <!-- Mobile Quick Chat Launcher (Visible on < 1024px) -->
+          <button id="dockChatBtn" class="lg:hidden relative w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-surface-container-highest text-on-surface hover:text-primary flex items-center justify-center active:scale-95 transition-all" title="Open Text Chat">
+            <span class="material-symbols-outlined text-[19px] sm:text-[20px]">chat</span>
+            <span id="dockUnreadBadge" class="hidden absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-primary ring-2 ring-surface-container-lowest"></span>
           </button>
         </div>
 
         <!-- Call Endurance Keep-Alive Pill -->
-        <div class="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-lowest/60 border border-white/5 text-[11px] font-mono text-on-surface-variant">
+        <div class="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-lowest/60 border border-white/5 text-[11px] font-mono text-on-surface-variant">
           <span class="w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span>
           <span>Mesh P2P • Zero Dropouts</span>
         </div>
 
         <!-- Quick Emoji Reaction Ribbon -->
-        <div class="flex items-center gap-1">
-          <button class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-container active:scale-125 transition-transform text-base reaction-btn">❤️</button>
-          <button class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-container active:scale-125 transition-transform text-base reaction-btn">🔥</button>
-          <button class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-container active:scale-125 transition-transform text-base reaction-btn">👏</button>
-          <button class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-container active:scale-125 transition-transform text-base reaction-btn">🚀</button>
+        <div class="flex items-center gap-0.5 sm:gap-1">
+          <button class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center hover:bg-surface-container active:scale-125 transition-transform text-sm sm:text-base reaction-btn">❤️</button>
+          <button class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center hover:bg-surface-container active:scale-125 transition-transform text-sm sm:text-base reaction-btn">🔥</button>
+          <button class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center hover:bg-surface-container active:scale-125 transition-transform text-sm sm:text-base reaction-btn">👏</button>
+          <button class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center hover:bg-surface-container active:scale-125 transition-transform text-sm sm:text-base reaction-btn">🚀</button>
         </div>
       </div>
     </section>
 
     <!-- ================= RIGHT: REAL-TIME TEXT CHAT PANEL ================= -->
-    <section class="w-full lg:w-[380px] xl:w-[420px] flex flex-col rounded-2xl bg-surface-container border border-white/5 overflow-hidden shadow-2xl shrink-0 h-[450px] lg:h-auto">
+    <section id="chatSection" class="w-full lg:w-[380px] xl:w-[420px] flex flex-col rounded-xl sm:rounded-2xl bg-surface-container border border-white/5 overflow-hidden shadow-2xl shrink-0 h-full lg:h-auto">
       
       <!-- Real-Time Chat Header -->
-      <div class="h-14 px-4 bg-surface-container-low/95 border-b border-white/5 flex items-center justify-between shrink-0">
+      <div class="h-14 px-3 sm:px-4 bg-surface-container-low/95 border-b border-white/5 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-2 min-w-0">
+          <!-- Back to Call Button on Mobile (< 1024px) -->
+          <button id="mobileBackToCallBtn" class="lg:hidden p-1 rounded-full hover:bg-surface-container text-on-surface-variant hover:text-on-surface flex items-center justify-center active:scale-95" title="Return to Call View">
+            <span class="material-symbols-outlined text-[20px]">arrow_back_ios_new</span>
+          </button>
           <span class="material-symbols-outlined text-primary text-[20px]">chat</span>
           <h2 class="font-headline font-semibold text-sm text-on-surface">P2P Chat</h2>
           <span id="chatOnlinePill" class="px-2 py-0.5 rounded-full bg-surface-container-high text-[10px] font-mono text-on-surface-variant border border-white/5">1 Online</span>
@@ -285,7 +308,7 @@
       </div>
 
       <!-- Messages Stream (Real Online Messages Only) -->
-      <div id="chat-stream" class="flex-1 p-3 overflow-y-auto space-y-3 font-body text-sm">
+      <div id="chat-stream" class="flex-1 p-3 overflow-y-auto space-y-3 font-body text-sm overscroll-contain">
         <!-- System Note -->
         <div class="flex items-center justify-center my-1">
           <div class="bg-surface-container-low px-3 py-1 rounded-full text-[11px] font-mono text-on-surface-variant border border-white/5">
@@ -305,9 +328,9 @@
       </div>
 
       <!-- Message Composer Deck -->
-      <div class="p-3 bg-surface-container-low border-t border-white/5 flex items-center gap-2 shrink-0">
+      <div class="p-2.5 sm:p-3 bg-surface-container-low border-t border-white/5 flex items-center gap-2 shrink-0 pb-safe">
         <div class="flex-1 bg-surface-container-highest rounded-full px-3.5 py-1.5 flex items-center gap-2 border border-white/5 focus-within:border-primary/40 transition-colors">
-          <input id="chat-input" type="text" placeholder="Type message to online peers..." class="w-full bg-transparent border-0 outline-none text-sm text-on-surface placeholder:text-on-surface-variant" autocomplete="off" />
+          <input id="chat-input" type="text" placeholder="Type message to online peers..." class="w-full bg-transparent border-0 outline-none text-base sm:text-sm text-on-surface placeholder:text-on-surface-variant" autocomplete="off" />
           <button id="emoji-quick-btn" class="text-on-surface-variant hover:text-on-surface transition-colors" title="Quick emoji">
             <span class="material-symbols-outlined text-[18px]">sentiment_satisfied</span>
           </button>
