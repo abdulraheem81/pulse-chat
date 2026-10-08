@@ -1,6 +1,11 @@
 /**
  * Pulse — Real Online P2P Multi-Peer Video, Audio & Chat Application
- * Exclusively tracks and displays real online participants in the WebRTC mesh.
+ * Features:
+ * - Dynamic Video Sizing, Layout Modes (Grid vs Spotlight), and Full Screen controls
+ * - Interactive Draggable & Resizable Picture-in-Picture (PiP)
+ * - Per-video aspect ratio toggle (Fit / Fill)
+ * - Real online callers only in WebRTC mesh
+ * - Call endurance keep-alive & real-time chat
  */
 
 (function () {
@@ -13,7 +18,7 @@
   const defaultName = isSecondTab ? 'Peer-2' : 'Host';
   const userName = urlParams.get('user') || defaultName;
 
-  // App State — strictly real online participants
+  // App State
   const state = {
     roomId,
     userName,
@@ -21,15 +26,28 @@
     timerInterval: null,
     isP2PConnected: false,
     webrtc: null,
-    activePeers: new Map() // socketId -> { id, name, stream, isSpeaking, isMuted }
+    activePeers: new Map(), // socketId -> { id, name, stream, isSpeaking, isMuted }
+    layoutMode: 'grid',    // 'grid' or 'spotlight'
+    pinnedPeerId: null,    // socketId of pinned/spotlight peer
+    globalFitMode: 'cover', // 'cover' or 'contain'
+    pipSizeIndex: 1        // 0: S (130px), 1: M (180px), 2: L (260px), 3: XL (340px)
   };
+
+  const PIP_SIZES = [
+    { label: 'S', width: 130 },
+    { label: 'M', width: 180 },
+    { label: 'L', width: 260 },
+    { label: 'XL', width: 340 }
+  ];
 
   // Socket.io for WebRTC signaling
   const socket = io();
 
   // DOM elements
+  const videoStage = document.getElementById('videoStage');
   const videoGrid = document.getElementById('videoGrid');
   const remotePlaceholder = document.getElementById('remotePlaceholder');
+  const pipBox = document.getElementById('pipBox');
   const localVideoEl = document.getElementById('localVideo');
   const p2pDot = document.getElementById('p2p-dot');
   const p2pStatusLabel = document.getElementById('p2p-status-label');
@@ -41,6 +59,22 @@
   const typingIndicator = document.getElementById('typing-indicator');
   const typingText = document.getElementById('typing-text');
   const toastEl = document.getElementById('app-toast');
+
+  // Toolbar & Sizing DOM elements
+  const viewGridBtn = document.getElementById('viewGridBtn');
+  const viewSpotlightBtn = document.getElementById('viewSpotlightBtn');
+  const toggleFitBtn = document.getElementById('toggleFitBtn');
+  const fitIcon = document.getElementById('fitIcon');
+  const fitText = document.getElementById('fitText');
+  const stageFullscreenBtn = document.getElementById('stageFullscreenBtn');
+  const stageFullscreenIcon = document.getElementById('stageFullscreenIcon');
+  const dockFullscreenBtn = document.getElementById('dockFullscreenBtn');
+  const dockFullscreenIcon = document.getElementById('dockFullscreenIcon');
+  const pipSizeBtn = document.getElementById('pipSizeBtn');
+  const pipFitBtn = document.getElementById('pipFitBtn');
+  const pipFullscreenBtn = document.getElementById('pipFullscreenBtn');
+  const pipResizeHandle = document.getElementById('pipResizeHandle');
+  const pipDragHandle = document.getElementById('pipDragHandle');
 
   // Initialize WebRTC Manager
   const webrtc = new WebRTCManager(
@@ -63,6 +97,9 @@
     // On Remote Stream Removed
     (remoteSocketId) => {
       console.log('[Mesh] Remote peer stream disconnected:', remoteSocketId);
+      if (state.pinnedPeerId === remoteSocketId) {
+        state.pinnedPeerId = null;
+      }
       removeRemotePeer(remoteSocketId);
       updateGridUI();
       if (state.activePeers.size === 0) {
@@ -90,7 +127,7 @@
   state.webrtc = webrtc;
 
   // ==========================================
-  // REAL ONLINE PEER GRID MANAGEMENT
+  // REAL ONLINE PEER GRID & SIZING MANAGEMENT
   // ==========================================
 
   function addRemotePeer(peerId, peerData) {
@@ -114,25 +151,85 @@
   }
 
   /**
-   * Updates the video grid layout based strictly on real online remote peers
+   * Updates the video grid layout: Grid Mode vs Spotlight Mode
    */
   function updateGridUI() {
     if (!videoGrid) return;
 
     const count = state.activePeers.size;
 
-    // Reset grid layout classes
-    videoGrid.className = 'w-full h-full grid gap-2 sm:gap-3 transition-all duration-300';
-
     if (count === 0) {
       if (remotePlaceholder) remotePlaceholder.classList.remove('hidden');
-      videoGrid.classList.add('peer-grid-1');
+      videoGrid.className = 'w-full h-full grid gap-2 sm:gap-3 transition-all duration-300 peer-grid-1';
       return;
     }
 
     if (remotePlaceholder) remotePlaceholder.classList.add('hidden');
 
-    // Adaptive grid sizing for real connected peers
+    // 1. Spotlight / Pinned Mode
+    if (state.layoutMode === 'spotlight' || state.pinnedPeerId) {
+      // Determine which peer to pin
+      let pinnedId = state.pinnedPeerId;
+      if (!pinnedId || !state.activePeers.has(pinnedId)) {
+        pinnedId = state.activePeers.keys().next().value;
+        state.pinnedPeerId = pinnedId;
+      }
+
+      videoGrid.className = 'w-full h-full peer-grid-spotlight relative overflow-hidden transition-all duration-300';
+
+      // Ensure thumbnail strip container exists
+      let thumbStrip = videoGrid.querySelector('.thumbnail-strip');
+      if (!thumbStrip) {
+        thumbStrip = document.createElement('div');
+        thumbStrip.className = 'thumbnail-strip';
+      }
+
+      state.activePeers.forEach((peer, peerId) => {
+        let cardEl = document.getElementById(`peer-card-${peerId}`);
+        if (!cardEl) {
+          cardEl = createPeerCardElement(peerId, peer);
+        }
+
+        const videoEl = cardEl.querySelector('video');
+        if (videoEl && peer.stream && videoEl.srcObject !== peer.stream) {
+          videoEl.srcObject = peer.stream;
+          videoEl.play().catch(e => console.log('Peer play:', e));
+        }
+
+        if (peerId === pinnedId) {
+          cardEl.classList.add('pinned');
+          // Put pinned card in main grid container
+          if (cardEl.parentElement !== videoGrid) {
+            videoGrid.insertBefore(cardEl, thumbStrip);
+          }
+        } else {
+          cardEl.classList.remove('pinned');
+          // Put other cards in thumbnail strip
+          thumbStrip.appendChild(cardEl);
+        }
+      });
+
+      if (thumbStrip.children.length > 0 && !videoGrid.contains(thumbStrip)) {
+        videoGrid.appendChild(thumbStrip);
+      } else if (thumbStrip.children.length === 0 && videoGrid.contains(thumbStrip)) {
+        thumbStrip.remove();
+      }
+
+      updateLayoutToolbarUI();
+      return;
+    }
+
+    // 2. Normal Equal Grid Mode
+    // Remove thumbnail strip and clean pinned classes
+    const existingStrip = videoGrid.querySelector('.thumbnail-strip');
+    if (existingStrip) {
+      const cardsInStrip = Array.from(existingStrip.children);
+      cardsInStrip.forEach(c => videoGrid.appendChild(c));
+      existingStrip.remove();
+    }
+
+    videoGrid.className = 'w-full h-full grid gap-2 sm:gap-3 transition-all duration-300';
+
     if (count === 1) {
       videoGrid.classList.add('peer-grid-1');
     } else if (count === 2) {
@@ -143,40 +240,55 @@
       videoGrid.classList.add('peer-grid-6');
     }
 
-    // Render cards for each real online peer
     state.activePeers.forEach((peer, peerId) => {
       let cardEl = document.getElementById(`peer-card-${peerId}`);
       if (!cardEl) {
         cardEl = createPeerCardElement(peerId, peer);
         videoGrid.appendChild(cardEl);
       }
+      cardEl.classList.remove('pinned');
 
-      // Attach real remote video stream
       const videoEl = cardEl.querySelector('video');
       if (videoEl && peer.stream && videoEl.srcObject !== peer.stream) {
         videoEl.srcObject = peer.stream;
-        videoEl.play().catch(e => console.log('Peer play handled:', e));
+        videoEl.play().catch(e => console.log('Peer play:', e));
       }
     });
+
+    updateLayoutToolbarUI();
+  }
+
+  function updateLayoutToolbarUI() {
+    if (!viewGridBtn || !viewSpotlightBtn) return;
+    const isSpotlight = state.layoutMode === 'spotlight' || Boolean(state.pinnedPeerId);
+    if (isSpotlight) {
+      viewSpotlightBtn.className = 'px-2.5 py-1 rounded-full bg-primary/20 text-primary font-bold transition-colors flex items-center gap-1';
+      viewGridBtn.className = 'px-2.5 py-1 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-colors flex items-center gap-1';
+    } else {
+      viewGridBtn.className = 'px-2.5 py-1 rounded-full bg-primary/20 text-primary font-bold transition-colors flex items-center gap-1';
+      viewSpotlightBtn.className = 'px-2.5 py-1 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-colors flex items-center gap-1';
+    }
   }
 
   /**
-   * Create an individual real peer video card
+   * Create an individual real peer video card with resize & fullscreen controls
    */
   function createPeerCardElement(peerId, peer) {
     const card = document.createElement('div');
     card.id = `peer-card-${peerId}`;
     card.className = 'video-peer-card w-full h-full relative group';
 
+    const fitClass = state.globalFitMode === 'contain' ? 'object-contain' : 'object-cover';
+
     card.innerHTML = `
       <!-- Remote Video Stream -->
-      <video class="w-full h-full object-cover relative z-10" playsinline autoplay></video>
+      <video class="w-full h-full ${fitClass} relative z-10 transition-all duration-200" playsinline autoplay></video>
       
       <!-- Video Backdrop Vignette -->
       <div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/90 via-transparent to-surface-container-lowest/30 z-10 pointer-events-none"></div>
 
       <!-- Peer Header Tag Top-Left -->
-      <div class="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5">
+      <div class="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 pointer-events-none">
         <div class="bg-surface-container-lowest/80 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-white/10 shadow-md">
           <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
           <span class="text-xs font-headline font-semibold text-on-surface truncate max-w-[140px]">${escapeHtml(peer.name)}</span>
@@ -184,15 +296,26 @@
         </div>
       </div>
 
-      <!-- Video Telemetry Top-Right -->
-      <div class="absolute top-2.5 right-2.5 z-20 flex items-center gap-1">
-        <div class="bg-surface-container-lowest/70 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] font-mono text-primary border border-white/5">
-          E2EE P2P
-        </div>
+      <!-- Video Control Actions Top-Right -->
+      <div class="absolute top-2.5 right-2.5 z-20 flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+        <!-- Pin / Spotlight Button -->
+        <button class="peer-pin-btn w-6 h-6 rounded-full bg-black/60 hover:bg-black/90 text-on-surface hover:text-primary flex items-center justify-center text-[12px] shadow-sm transition-colors" title="Pin / Spotlight this video">
+          <span class="material-symbols-outlined text-[14px]">push_pin</span>
+        </button>
+
+        <!-- Fit / Crop Button -->
+        <button class="peer-fit-btn w-6 h-6 rounded-full bg-black/60 hover:bg-black/90 text-on-surface hover:text-primary flex items-center justify-center text-[12px] shadow-sm transition-colors" title="Toggle Fit / Crop">
+          <span class="material-symbols-outlined text-[14px]">fit_screen</span>
+        </button>
+
+        <!-- Fullscreen Button -->
+        <button class="peer-fs-btn w-6 h-6 rounded-full bg-black/60 hover:bg-black/90 text-on-surface hover:text-primary flex items-center justify-center text-[12px] shadow-sm transition-colors" title="Full Screen Video">
+          <span class="material-symbols-outlined text-[14px]">fullscreen</span>
+        </button>
       </div>
 
       <!-- Peer Acoustic Bar Bottom-Left -->
-      <div class="absolute bottom-2.5 left-2.5 z-20 flex items-center gap-2">
+      <div class="absolute bottom-2.5 left-2.5 z-20 flex items-center gap-2 pointer-events-none">
         <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-lowest/80 backdrop-blur-md border border-white/5 shadow-md">
           <div class="flex items-center gap-0.5 h-3">
             <span class="w-0.5 bg-primary rounded-full sound-bar h-2 animate-pulse"></span>
@@ -204,16 +327,230 @@
       </div>
     `;
 
+    // Hook buttons on the card
+    const pinBtn = card.querySelector('.peer-pin-btn');
+    const fitBtn = card.querySelector('.peer-fit-btn');
+    const fsBtn = card.querySelector('.peer-fs-btn');
+    const videoEl = card.querySelector('video');
+
+    if (pinBtn) {
+      pinBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        togglePinPeer(peerId);
+      });
+    }
+
+    if (fitBtn && videoEl) {
+      fitBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isContain = videoEl.classList.contains('object-contain');
+        if (isContain) {
+          videoEl.classList.remove('object-contain');
+          videoEl.classList.add('object-cover');
+          showToast('Video set to fill frame (cover)');
+        } else {
+          videoEl.classList.remove('object-cover');
+          videoEl.classList.add('object-contain');
+          showToast('Video set to full view (fit)');
+        }
+      });
+    }
+
+    if (fsBtn) {
+      fsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleFullscreen(card);
+      });
+    }
+
+    // Double-click card to Pin / Unpin
+    card.addEventListener('dblclick', () => {
+      togglePinPeer(peerId);
+    });
+
     return card;
+  }
+
+  /**
+   * Toggles pinning / spotlighting a peer
+   */
+  function togglePinPeer(peerId) {
+    if (state.pinnedPeerId === peerId) {
+      state.pinnedPeerId = null;
+      state.layoutMode = 'grid';
+      showToast('Exited spotlight view');
+    } else {
+      state.pinnedPeerId = peerId;
+      state.layoutMode = 'spotlight';
+      showToast('Video pinned to spotlight view');
+    }
+    updateGridUI();
+  }
+
+  /**
+   * Fullscreen API handler (handles native fullscreen and escapes cleanly)
+   */
+  function toggleFullscreen(targetEl) {
+    const el = targetEl || videoStage || document.documentElement;
+
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      if (el.requestFullscreen) {
+        el.requestFullscreen().catch(err => console.warn('FS error:', err));
+      } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+      }
+      showToast('Entered Fullscreen');
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+      showToast('Exited Fullscreen');
+    }
+  }
+
+  // Monitor fullscreen changes to update icon visuals
+  function onFullscreenChange() {
+    const isFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+    const iconName = isFs ? 'fullscreen_exit' : 'fullscreen';
+    if (stageFullscreenIcon) stageFullscreenIcon.textContent = iconName;
+    if (dockFullscreenIcon) dockFullscreenIcon.textContent = iconName;
+  }
+  document.addEventListener('fullscreenchange', onFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+
+  // ==========================================
+  // DRAGGABLE & RESIZABLE PIP (LOCAL SELF VIDEO)
+  // ==========================================
+
+  function setupPipControls() {
+    if (!pipBox) return;
+
+    // 1. Cycle PiP Size Button (S / M / L / XL)
+    if (pipSizeBtn) {
+      pipSizeBtn.addEventListener('click', () => {
+        state.pipSizeIndex = (state.pipSizeIndex + 1) % PIP_SIZES.length;
+        const currentPreset = PIP_SIZES[state.pipSizeIndex];
+        pipSizeBtn.textContent = currentPreset.label;
+        pipBox.style.width = `${currentPreset.width}px`;
+        showToast(`PiP Size: ${currentPreset.label} (${currentPreset.width}px)`);
+      });
+    }
+
+    // 2. PiP Fit / Contain Toggle
+    if (pipFitBtn && localVideoEl) {
+      pipFitBtn.addEventListener('click', () => {
+        const isContain = localVideoEl.classList.contains('object-contain');
+        if (isContain) {
+          localVideoEl.classList.remove('object-contain');
+          localVideoEl.classList.add('object-cover');
+          showToast('Local cam: Crop Fill');
+        } else {
+          localVideoEl.classList.remove('object-cover');
+          localVideoEl.classList.add('object-contain');
+          showToast('Local cam: Full Fit');
+        }
+      });
+    }
+
+    // 3. PiP Fullscreen Toggle
+    if (pipFullscreenBtn) {
+      pipFullscreenBtn.addEventListener('click', () => {
+        toggleFullscreen(pipBox);
+      });
+    }
+
+    // 4. Interactive Drag-to-Resize Corner Handle (Freeform Sizing)
+    if (pipResizeHandle) {
+      let isResizing = false;
+      let startX = 0;
+      let startWidth = 0;
+
+      pipResizeHandle.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        isResizing = true;
+        startX = e.clientX;
+        startWidth = pipBox.offsetWidth;
+        pipBox.classList.add('resizing');
+        pipResizeHandle.setPointerCapture(e.pointerId);
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (!isResizing) return;
+        // As user drags bottom-left handle leftward, width increases
+        const deltaX = startX - e.clientX;
+        const newWidth = Math.max(100, Math.min(500, startWidth + deltaX));
+        pipBox.style.width = `${newWidth}px`;
+      });
+
+      window.addEventListener('pointerup', () => {
+        if (isResizing) {
+          isResizing = false;
+          pipBox.classList.remove('resizing');
+        }
+      });
+    }
+
+    // 5. Interactive Drag-to-Move across Video Stage
+    const dragTarget = pipDragHandle || pipBox;
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let initialLeft = 0;
+    let initialTop = 0;
+
+    dragTarget.addEventListener('pointerdown', (e) => {
+      // Don't drag if clicking buttons or resize handle
+      if (e.target.closest('button') || e.target.closest('#pipResizeHandle')) return;
+
+      isDragging = true;
+      pipBox.classList.add('dragging');
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+
+      const rect = pipBox.getBoundingClientRect();
+      const parentRect = (videoStage || pipBox.parentElement).getBoundingClientRect();
+
+      initialLeft = rect.left - parentRect.left;
+      initialTop = rect.top - parentRect.top;
+
+      pipBox.style.right = 'auto'; // release fixed right alignment
+      pipBox.style.left = `${initialLeft}px`;
+      pipBox.style.top = `${initialTop}px`;
+
+      dragTarget.setPointerCapture(e.pointerId);
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const deltaX = e.clientX - dragStartX;
+      const deltaY = e.clientY - dragStartY;
+
+      const parentRect = (videoStage || pipBox.parentElement).getBoundingClientRect();
+      const maxLeft = parentRect.width - pipBox.offsetWidth - 8;
+      const maxTop = parentRect.height - pipBox.offsetHeight - 8;
+
+      const newLeft = Math.max(8, Math.min(maxLeft, initialLeft + deltaX));
+      const newTop = Math.max(8, Math.min(maxTop, initialTop + deltaY));
+
+      pipBox.style.left = `${newLeft}px`;
+      pipBox.style.top = `${newTop}px`;
+    });
+
+    window.addEventListener('pointerup', () => {
+      if (isDragging) {
+        isDragging = false;
+        pipBox.classList.remove('dragging');
+      }
+    });
   }
 
   // ==========================================
   // CALL ENDURANCE (MAKE CALL LAST LONGER)
   // ==========================================
 
-  /**
-   * Starts call duration timer with persistence across refreshes
-   */
   function startCallTimer() {
     const savedTime = sessionStorage.getItem('pulse_call_seconds');
     if (savedTime && !isNaN(parseInt(savedTime, 10))) {
@@ -233,9 +570,6 @@
     }, 1000);
   }
 
-  /**
-   * Sets P2P Connection Status & Indicators
-   */
   function setP2PStatus(connected) {
     state.isP2PConnected = connected;
     if (!p2pDot || !p2pStatusLabel) return;
@@ -312,9 +646,6 @@
     return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
-  /**
-   * Sending messages directly to online peers
-   */
   function sendMessage() {
     if (!chatInput) return;
     const text = chatInput.value.trim();
@@ -450,6 +781,58 @@
       if (btn) btn.addEventListener('click', copyInviteLink);
     });
 
+    // Layout Mode Toggle Buttons
+    if (viewGridBtn) {
+      viewGridBtn.addEventListener('click', () => {
+        state.layoutMode = 'grid';
+        state.pinnedPeerId = null;
+        updateGridUI();
+        showToast('Switched to Grid View');
+      });
+    }
+
+    if (viewSpotlightBtn) {
+      viewSpotlightBtn.addEventListener('click', () => {
+        state.layoutMode = 'spotlight';
+        if (state.activePeers.size > 0 && !state.pinnedPeerId) {
+          state.pinnedPeerId = state.activePeers.keys().next().value;
+        }
+        updateGridUI();
+        showToast('Switched to Spotlight View');
+      });
+    }
+
+    // Global Video Fit/Fill Toggle
+    if (toggleFitBtn) {
+      toggleFitBtn.addEventListener('click', () => {
+        state.globalFitMode = state.globalFitMode === 'cover' ? 'contain' : 'cover';
+        const isContain = state.globalFitMode === 'contain';
+        if (fitText) fitText.textContent = isContain ? 'Fit' : 'Fill';
+        if (fitIcon) fitIcon.textContent = isContain ? 'aspect_ratio' : 'crop_free';
+
+        // Apply to all video elements in grid
+        document.querySelectorAll('#videoGrid video').forEach(v => {
+          if (isContain) {
+            v.classList.remove('object-cover');
+            v.classList.add('object-contain');
+          } else {
+            v.classList.remove('object-contain');
+            v.classList.add('object-cover');
+          }
+        });
+
+        showToast(isContain ? 'Video mode: Full frame (Fit)' : 'Video mode: Zoom fill (Cover)');
+      });
+    }
+
+    // Stage Fullscreen Buttons
+    if (stageFullscreenBtn) {
+      stageFullscreenBtn.addEventListener('click', () => toggleFullscreen(videoStage));
+    }
+    if (dockFullscreenBtn) {
+      dockFullscreenBtn.addEventListener('click', () => toggleFullscreen(videoStage));
+    }
+
     // Chat Composer
     if (sendMsgBtn) sendMsgBtn.addEventListener('click', sendMessage);
     if (chatInput) {
@@ -552,6 +935,9 @@
         });
       }
     });
+
+    // PiP Interactive Drag & Resize
+    setupPipControls();
   }
 
   // Socket Signaling Handlers
@@ -608,6 +994,9 @@
       console.log('[Mesh] Real peer left room:', socketId);
       const peer = state.activePeers.get(socketId);
       const peerName = peer ? peer.name : 'Peer';
+      if (state.pinnedPeerId === socketId) {
+        state.pinnedPeerId = null;
+      }
       webrtc.closePeer(socketId);
       removeRemotePeer(socketId);
       updateGridUI();

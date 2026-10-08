@@ -139,6 +139,7 @@
   align-items: center;
   justify-content: center;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 180px;
 }
 
 .video-peer-card.speaking {
@@ -146,8 +147,102 @@
   box-shadow: 0 0 20px rgba(78, 222, 163, 0.25);
 }
 
+.video-peer-card.pinned {
+  border-color: #4edea3;
+  box-shadow: 0 0 28px rgba(78, 222, 163, 0.35);
+}
+
+/* Spotlight Layout (1 Main Dominant Video + Thumbnails) */
+.peer-grid-spotlight {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.75rem !important;
+}
+
+.peer-grid-spotlight .video-peer-card.pinned {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.peer-grid-spotlight .thumbnail-strip {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  height: 110px;
+  flex-shrink: 0;
+  padding: 0.25rem 0;
+}
+
+.peer-grid-spotlight .thumbnail-strip .video-peer-card {
+  width: 150px !important;
+  min-height: 90px !important;
+  height: 100% !important;
+  flex-shrink: 0;
+}
+
+/* Native Fullscreen Enhancements */
+.video-peer-card:fullscreen,
+.video-peer-card:-webkit-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  border-radius: 0 !important;
+  background: #000 !important;
+  border: none !important;
+}
+
+.video-peer-card:fullscreen video,
+.video-peer-card:-webkit-full-screen video {
+  object-fit: contain !important;
+}
+
+#videoStage:fullscreen,
+#videoStage:-webkit-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  padding: 0 !important;
+  background: #0a0e16 !important;
+  border-radius: 0 !important;
+}
+
+/* PiP Resizing & Dragging */
+#pipBox {
+  touch-action: none;
+  user-select: none;
+  min-width: 100px;
+  max-width: 90vw;
+  min-height: 120px;
+  max-height: 80vh;
+}
+
+#pipBox.dragging {
+  opacity: 0.9;
+  cursor: grabbing;
+}
+
+.pip-resize-handle {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nesw-resize;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 0.15s;
+}
+
+.pip-resize-handle:hover {
+  color: #4edea3;
+}
+
 /* Sound Wave Bars */
 .sound-bar {
   transition: height 0.08s ease;
 }
+
 

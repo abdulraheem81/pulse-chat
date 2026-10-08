@@ -134,20 +134,77 @@
 
         </div>
 
-        <!-- Local Self Video (Floating Picture-in-Picture) -->
-        <div id="pipBox" class="absolute top-3 right-3 w-28 sm:w-36 aspect-[3/4] rounded-xl overflow-hidden shadow-2xl bg-surface-container border border-white/10 z-20 group">
+        <!-- Floating Stage View & Sizing Toolbar Top-Left -->
+        <div class="absolute top-3 left-3 z-30 flex items-center gap-1.5 bg-surface-container-lowest/80 backdrop-blur-md px-2 py-1 rounded-full border border-white/10 shadow-lg text-xs font-mono">
+          <!-- Grid Layout Toggle -->
+          <button id="viewGridBtn" class="px-2.5 py-1 rounded-full bg-primary/20 text-primary font-bold hover:bg-primary/30 transition-colors flex items-center gap-1" title="Equal Grid View">
+            <span class="material-symbols-outlined text-[15px]">grid_view</span>
+            <span class="hidden sm:inline">Grid</span>
+          </button>
+          
+          <!-- Spotlight Layout Toggle -->
+          <button id="viewSpotlightBtn" class="px-2.5 py-1 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-colors flex items-center gap-1" title="Speaker Spotlight View">
+            <span class="material-symbols-outlined text-[15px]">featured_video</span>
+            <span class="hidden sm:inline">Spotlight</span>
+          </button>
+
+          <span class="w-px h-3.5 bg-white/10 mx-0.5"></span>
+
+          <!-- Aspect Ratio Fit/Fill Toggle -->
+          <button id="toggleFitBtn" class="px-2 py-1 rounded-full text-on-surface-variant hover:text-primary hover:bg-white/5 transition-colors flex items-center gap-1" title="Toggle Video Fit (Crop / Uncrop)">
+            <span class="material-symbols-outlined text-[15px]" id="fitIcon">crop_free</span>
+            <span class="hidden sm:inline" id="fitText">Fill</span>
+          </button>
+
+          <!-- Stage Fullscreen Button -->
+          <button id="stageFullscreenBtn" class="px-2 py-1 rounded-full text-on-surface-variant hover:text-primary hover:bg-white/5 transition-colors flex items-center gap-1" title="Full Screen Stage">
+            <span class="material-symbols-outlined text-[16px]" id="stageFullscreenIcon">fullscreen</span>
+          </button>
+        </div>
+
+        <!-- Local Self Video (Draggable & Resizable Picture-in-Picture) -->
+        <div id="pipBox" class="absolute top-3 right-3 w-32 sm:w-40 aspect-[3/4] rounded-xl overflow-hidden shadow-2xl bg-surface-container border border-white/10 z-30 group transition-[box-shadow,border-color]">
           <video id="localVideo" class="w-full h-full object-cover" playsinline autoplay muted></video>
           
-          <!-- PiP Top Actions -->
-          <div class="absolute top-1.5 right-1.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button id="pipFlipCamBtn" class="w-6 h-6 rounded-full bg-black/60 backdrop-blur-sm text-on-surface hover:text-primary flex items-center justify-center text-[12px]" title="Flip Camera">
-              <span class="material-symbols-outlined text-[14px]">flip_camera_ios</span>
-            </button>
+          <!-- PiP Top Actions Bar -->
+          <div class="absolute top-1 inset-x-1 flex items-center justify-between px-1 z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-b from-black/70 via-black/30 to-transparent pt-0.5 pb-2">
+            <!-- Drag Handle -->
+            <div id="pipDragHandle" class="cursor-grab active:cursor-grabbing text-white/60 hover:text-white flex items-center" title="Drag to move PiP">
+              <span class="material-symbols-outlined text-[16px]">drag_indicator</span>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-1">
+              <!-- PiP Size Switcher (S / M / L / XL) -->
+              <button id="pipSizeBtn" class="px-1.5 py-0.5 rounded bg-black/60 hover:bg-black/90 text-[10px] font-mono text-primary font-bold" title="Cycle PiP Size (S / M / L / XL)">
+                M
+              </button>
+
+              <!-- PiP Fit/Crop Toggle -->
+              <button id="pipFitBtn" class="w-5 h-5 rounded bg-black/60 hover:bg-black/90 text-on-surface hover:text-primary flex items-center justify-center text-[12px]" title="Toggle Fit/Crop">
+                <span class="material-symbols-outlined text-[13px]">fit_screen</span>
+              </button>
+
+              <!-- Flip Camera -->
+              <button id="pipFlipCamBtn" class="w-5 h-5 rounded bg-black/60 hover:bg-black/90 text-on-surface hover:text-primary flex items-center justify-center text-[12px]" title="Flip Camera">
+                <span class="material-symbols-outlined text-[13px]">flip_camera_ios</span>
+              </button>
+
+              <!-- Fullscreen Local Cam -->
+              <button id="pipFullscreenBtn" class="w-5 h-5 rounded bg-black/60 hover:bg-black/90 text-on-surface hover:text-primary flex items-center justify-center text-[12px]" title="Fullscreen Your Video">
+                <span class="material-symbols-outlined text-[13px]">fullscreen</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Bottom-Left Interactive Resize Handle -->
+          <div id="pipResizeHandle" class="pip-resize-handle" title="Drag to resize video size">
+            <span class="material-symbols-outlined text-[14px]">open_in_full</span>
           </div>
 
           <!-- PiP Bottom Meta Tag -->
           <div class="absolute bottom-1.5 inset-x-1.5 px-2 py-0.5 rounded-lg bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-between z-10 text-[10px] font-mono">
-            <span class="font-semibold text-on-surface">You (Online)</span>
+            <span class="font-semibold text-on-surface">You</span>
             <div class="flex items-end gap-0.5 h-2.5">
               <span class="w-0.5 bg-primary rounded-full pip-soundwave-bar h-2"></span>
               <span class="w-0.5 bg-primary rounded-full pip-soundwave-bar h-3"></span>
@@ -157,7 +214,7 @@
         </div>
 
         <!-- Floating Reaction Particle Field -->
-        <div id="reactionField" class="absolute inset-0 pointer-events-none overflow-hidden z-30"></div>
+        <div id="reactionField" class="absolute inset-0 pointer-events-none overflow-hidden z-20"></div>
       </div>
 
       <!-- Call Action Dock -->
@@ -182,6 +239,11 @@
           <!-- Flip Camera -->
           <button id="camFlipBtn" class="w-11 h-11 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all" title="Flip Camera">
             <span class="material-symbols-outlined text-[20px]">flip_camera_ios</span>
+          </button>
+
+          <!-- Fullscreen Stage Button in Dock -->
+          <button id="dockFullscreenBtn" class="w-11 h-11 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all" title="Full Screen View">
+            <span class="material-symbols-outlined text-[20px]" id="dockFullscreenIcon">fullscreen</span>
           </button>
         </div>
 
