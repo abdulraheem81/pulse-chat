@@ -69,12 +69,12 @@
 
     <!-- Header Telemetry & Quick Actions -->
     <div class="flex items-center gap-2 sm:gap-3">
-      <!-- Network Quality Telemetry -->
-      <div class="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container border border-white/5 font-mono text-xs">
-        <span class="material-symbols-outlined text-primary text-[15px]">signal_cellular_alt</span>
-        <span class="text-primary font-medium">24ms</span>
-        <span class="text-on-surface-variant">• HD 60fps</span>
-      </div>
+      <!-- Network Quality & Low Bandwidth Mode Selector -->
+      <button id="bandwidthBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container hover:bg-surface-container-high border border-primary/20 font-mono text-xs text-on-surface shadow-sm transition-all active:scale-95" title="Click to change Bandwidth Mode (Data Saver / Balanced / HD / Audio Only)">
+        <span class="material-symbols-outlined text-primary text-[15px]" id="bandwidthIcon">speed</span>
+        <span id="bandwidthLabel" class="text-primary font-bold">Data Saver (160k)</span>
+        <span id="netLatency" class="text-on-surface-variant text-[11px] hidden xl:inline">• 24ms</span>
+      </button>
 
       <!-- Online Peers Status Badge -->
       <div id="p2p-badge" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container border border-white/5 shadow-sm text-xs font-mono">
@@ -122,7 +122,7 @@
             <div class="flex flex-col gap-1 max-w-md">
               <h3 class="font-headline font-semibold text-lg text-on-surface">Waiting for Peers to Join</h3>
               <p class="text-xs text-on-surface-variant leading-relaxed">
-                Only real online participants will appear on stage. Open the invite link in a second tab or share it with a teammate to connect video, audio, and text directly!
+                Optimized for low bandwidth connections with Opus forward error correction. Open the invite link in a second tab or send it to a friend!
               </p>
             </div>
 
@@ -234,6 +234,11 @@
           <!-- Screen Share -->
           <button id="shareScreenBtn" class="w-11 h-11 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all" title="Share Screen">
             <span class="material-symbols-outlined text-[20px]">present_to_all</span>
+          </button>
+
+          <!-- Audio-Only Low-Data Toggle Button -->
+          <button id="audioOnlyBtn" class="w-11 h-11 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all" title="Toggle Audio-Only (Zero Video Data Saver)">
+            <span class="material-symbols-outlined text-[20px]" id="audioOnlyIcon">headset</span>
           </button>
 
           <!-- Flip Camera -->

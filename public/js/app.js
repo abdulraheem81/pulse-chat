@@ -60,6 +60,14 @@
   const typingText = document.getElementById('typing-text');
   const toastEl = document.getElementById('app-toast');
 
+  // Bandwidth & Low-Data Controls
+  const bandwidthBtn = document.getElementById('bandwidthBtn');
+  const bandwidthLabel = document.getElementById('bandwidthLabel');
+  const bandwidthIcon = document.getElementById('bandwidthIcon');
+  const netLatency = document.getElementById('netLatency');
+  const audioOnlyBtn = document.getElementById('audioOnlyBtn');
+  const audioOnlyIcon = document.getElementById('audioOnlyIcon');
+
   // Toolbar & Sizing DOM elements
   const viewGridBtn = document.getElementById('viewGridBtn');
   const viewSpotlightBtn = document.getElementById('viewSpotlightBtn');
@@ -938,6 +946,74 @@
 
     // PiP Interactive Drag & Resize
     setupPipControls();
+
+    // Low-Bandwidth Mode & Live Network Telemetry
+    setupBandwidthControls();
+  }
+
+  function setupBandwidthControls() {
+    const profileKeys = ['saver', 'balanced', 'hd', 'audio-only'];
+    let currentProfileIdx = 0;
+
+    function updateBandwidthUI(profileKey) {
+      const prof = webrtc.bandwidthProfiles[profileKey];
+      if (!prof) return;
+
+      if (bandwidthLabel) {
+        if (profileKey === 'saver') bandwidthLabel.textContent = 'Data Saver (160k)';
+        else if (profileKey === 'balanced') bandwidthLabel.textContent = 'Balanced (450k)';
+        else if (profileKey === 'hd') bandwidthLabel.textContent = 'HD Mode (1.2M)';
+        else if (profileKey === 'audio-only') bandwidthLabel.textContent = 'Audio Only (16k)';
+      }
+
+      if (bandwidthIcon) {
+        if (profileKey === 'saver') bandwidthIcon.textContent = 'eco';
+        else if (profileKey === 'audio-only') bandwidthIcon.textContent = 'headset';
+        else if (profileKey === 'hd') bandwidthIcon.textContent = 'high_quality';
+        else bandwidthIcon.textContent = 'speed';
+      }
+
+      if (audioOnlyBtn) {
+        if (profileKey === 'audio-only') {
+          audioOnlyBtn.className = 'w-11 h-11 rounded-full bg-secondary text-on-secondary flex items-center justify-center shadow-lg active:scale-95 transition-all';
+        } else {
+          audioOnlyBtn.className = 'w-11 h-11 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all';
+        }
+      }
+    }
+
+    if (bandwidthBtn) {
+      bandwidthBtn.addEventListener('click', () => {
+        currentProfileIdx = (currentProfileIdx + 1) % profileKeys.length;
+        const nextKey = profileKeys[currentProfileIdx];
+        webrtc.setBandwidthProfile(nextKey);
+        updateBandwidthUI(nextKey);
+        showToast(`Bandwidth: ${webrtc.bandwidthProfiles[nextKey].label}`);
+      });
+    }
+
+    if (audioOnlyBtn) {
+      audioOnlyBtn.addEventListener('click', () => {
+        const isCurrentlyAudioOnly = webrtc.bandwidthProfile === 'audio-only';
+        const targetProfile = isCurrentlyAudioOnly ? 'saver' : 'audio-only';
+        webrtc.setBandwidthProfile(targetProfile);
+        currentProfileIdx = profileKeys.indexOf(targetProfile);
+        updateBandwidthUI(targetProfile);
+        showToast(isCurrentlyAudioOnly ? 'Video enabled (Data Saver)' : 'Audio-Only Mode (Zero Video Data)');
+      });
+    }
+
+    // Initialize UI
+    updateBandwidthUI(webrtc.bandwidthProfile);
+
+    // Live WebRTC Network Telemetry & Auto Adaptation
+    webrtc.startStatsMonitoring((stats) => {
+      if (netLatency) {
+        const lossText = stats.loss > 0 ? ` • ${stats.loss}% loss` : '';
+        netLatency.textContent = `• ${stats.rtt}ms${lossText}`;
+      }
+      updateBandwidthUI(webrtc.bandwidthProfile);
+    });
   }
 
   // Socket Signaling Handlers
