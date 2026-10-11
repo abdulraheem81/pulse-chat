@@ -106,11 +106,21 @@ class WebRTCManager {
     // Candidate queue for candidates that arrive before setRemoteDescription
     this.pendingCandidates = new Map(); // socketId -> array of RTCIceCandidateInit
 
-    // Fetch freshest ICE servers asynchronously from server endpoint
+    this.roomId = 'pulse-room';
     this.fetchIceServers();
 
     this.startKeepAlive();
     this.requestWakeLock();
+  }
+
+  setRoomId(roomId) {
+    if (roomId) this.roomId = roomId;
+  }
+
+  unlockAudio() {
+    if (this.audioContext && this.audioContext.state === 'suspended') {
+      this.audioContext.resume().catch(() => {});
+    }
   }
 
   async fetchIceServers() {
@@ -172,7 +182,7 @@ class WebRTCManager {
 
       // 2. Socket keep-alive
       if (this.socket && this.socket.connected) {
-        this.socket.emit('room-keep-alive', { roomId: 'pulse-room' });
+        this.socket.emit('room-keep-alive', { roomId: this.roomId });
       }
     }, 8000);
   }

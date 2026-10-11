@@ -69,6 +69,17 @@ app.get('/api/ice-servers', (req, res) => {
   });
 });
 
+// API Route for WebTransport / Server Transport Config
+app.get('/api/transport-info', (req, res) => {
+  res.json({
+    protocol: 'webtransport-quic',
+    fallback: 'websocket-binary',
+    port: PORT,
+    certHash: 'nif3lLUTIOqbbwWugmjAZHSyWZYOqVJwtPRj2cJ7yBo=',
+    maxPacketSize: 65536
+  });
+});
+
 // API Routes
 app.get('/api/spaces', (req, res) => {
   res.json(Array.from(spaces.values()));
@@ -100,7 +111,7 @@ io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
 
   // WebRTC Video Room Signaling
-  socket.on('join-video-room', ({ roomId = 'default-video-room', userName = 'User' }) => {
+  socket.on('join-video-room', ({ roomId = 'pulse-room', userName = 'User' }) => {
     socket.join(roomId);
     const room = getOrCreateRoom(roomId);
     room.users.set(socket.id, { id: socket.id, name: userName });
@@ -124,17 +135,6 @@ io.on('connection', (socket) => {
     console.log(`User ${userName} (${socket.id}) joined video room: ${roomId}`);
   });
 
-// API Route for WebTransport / Server Transport Config
-app.get('/api/transport-info', (req, res) => {
-  res.json({
-    protocol: 'webtransport-quic',
-    fallback: 'websocket-binary',
-    port: PORT,
-    certHash: 'nif3lLUTIOqbbwWugmjAZHSyWZYOqVJwtPRj2cJ7yBo=',
-    maxPacketSize: 65536
-  });
-});
-
   socket.on('signal', ({ targetSocketId, signalData }) => {
     io.to(targetSocketId).emit('signal', {
       senderSocketId: socket.id,
@@ -142,9 +142,19 @@ app.get('/api/transport-info', (req, res) => {
     });
   });
 
+  // Direct Data Packet Relay (P2P direct channel emulation over WebSocket)
+  socket.on('client-direct-data', ({ roomId, payload }) => {
+    const targetRoom = roomId || Array.from(socket.rooms).find(r => r !== socket.id) || 'pulse-room';
+    socket.to(targetRoom).emit('peer-direct-data', {
+      senderSocketId: socket.id,
+      payload
+    });
+  });
+
   // High-Speed WebSocket Binary PCM Audio Relay (100% Reliable across all countries)
-  socket.on('client-audio-pcm', ({ roomId = 'pulse-room', pcm, sampleRate }) => {
-    socket.to(roomId).emit('peer-audio-pcm', {
+  socket.on('client-audio-pcm', ({ roomId, pcm, sampleRate }) => {
+    const targetRoom = roomId || Array.from(socket.rooms).find(r => r !== socket.id) || 'pulse-room';
+    socket.to(targetRoom).emit('peer-audio-pcm', {
       senderSocketId: socket.id,
       pcm,
       sampleRate
@@ -152,30 +162,33 @@ app.get('/api/transport-info', (req, res) => {
   });
 
   // Real-Time Video Frame Streaming Relay
-  socket.on('client-video-frame', ({ roomId = 'pulse-room', frame }) => {
-    socket.to(roomId).emit('peer-video-frame', {
+  socket.on('client-video-frame', ({ roomId, frame }) => {
+    const targetRoom = roomId || Array.from(socket.rooms).find(r => r !== socket.id) || 'pulse-room';
+    socket.to(targetRoom).emit('peer-video-frame', {
       senderSocketId: socket.id,
       frame
     });
   });
 
   // Keep-alive heartbeat from client to ensure connection longevity
-  socket.on('room-keep-alive', ({ roomId = 'pulse-room' }) => {
+  socket.on('room-keep-alive', ({ roomId }) => {
     socket.emit('room-keep-alive-ack', { ts: Date.now(), status: 'alive' });
   });
 
   // Relay chat message if data channel is still establishing or for multi-peer broadcast
-  socket.on('chat-message-relay', ({ roomId = 'pulse-room', msg }) => {
-    const room = getOrCreateRoom(roomId);
-    if (msg) {
+  socket.on('chat-message-relay', ({ roomId, msg }) => {
+    const targetRoom = roomId || Array.from(socket.rooms).find(r => r !== socket.id) || 'pulse-room';
+    const room = getOrCreateRoom(targetRoom);
+    if (msg && msg.text) {
       room.messages.push(msg);
     }
-    socket.to(roomId).emit('chat-message-relay', { msg });
+    socket.to(targetRoom).emit('chat-message-relay', { msg });
   });
 
   // Reaction Broadcast (Sparks, floating emojis)
-  socket.on('spawn-reaction', ({ roomId = 'default-video-room', emoji, sender }) => {
-    io.to(roomId).emit('reaction-spawned', { emoji, sender: sender || 'User', id: Date.now() });
+  socket.on('spawn-reaction', ({ roomId, emoji, sender }) => {
+    const targetRoom = roomId || Array.from(socket.rooms).find(r => r !== socket.id) || 'pulse-room';
+    io.to(targetRoom).emit('reaction-spawned', { emoji, sender: sender || 'User', id: Date.now() });
   });
 
   // Audio Space room actions

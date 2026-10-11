@@ -143,6 +143,9 @@
       setP2PStatus(channelState === 'open' || state.activePeers.size > 0);
     }
   );
+  if (webrtc.setRoomId) {
+    webrtc.setRoomId(state.roomId);
+  }
   state.webrtc = webrtc;
 
   // ==========================================
@@ -759,8 +762,8 @@
     appendChatMessage(msg);
     chatInput.value = '';
 
-    // Broadcast directly over WebRTC RTCDataChannel
-    webrtc.sendP2PMessage({
+    // Broadcast directly over WebRTC RTCDataChannel or WebSocket direct data
+    const sentDirect = webrtc.sendP2PMessage({
       type: 'chat',
       msg: {
         ...msg,
@@ -769,8 +772,10 @@
       }
     });
 
-    // Also broadcast over socket relay as mesh fallback
-    socket.emit('chat-message-relay', { roomId: state.roomId, msg });
+    // If direct send was not available, broadcast over socket relay as mesh fallback
+    if (!sentDirect) {
+      socket.emit('chat-message-relay', { roomId: state.roomId, msg });
+    }
   }
 
   function handleP2PMessage(senderSocketId, payload) {
@@ -881,6 +886,9 @@
 
     // Audio Autoplay Policy Unlock (Unmute and play all remote video elements)
     const unlockAudio = () => {
+      if (webrtc && webrtc.unlockAudio) {
+        webrtc.unlockAudio();
+      }
       document.querySelectorAll('#videoGrid video').forEach(v => {
         v.muted = false;
         v.play().catch(() => {});
@@ -992,10 +1000,10 @@
       btn.addEventListener('click', () => {
         const emoji = btn.textContent.trim();
         spawnReaction(emoji);
-        if (webrtc.hasActiveP2P()) {
-          webrtc.sendP2PMessage({ type: 'reaction', emoji });
+        const sentDirect = webrtc.hasActiveP2P() && webrtc.sendP2PMessage({ type: 'reaction', emoji });
+        if (!sentDirect) {
+          socket.emit('spawn-reaction', { roomId: state.roomId, emoji, sender: state.userName });
         }
-        socket.emit('spawn-reaction', { roomId: state.roomId, emoji, sender: state.userName });
       });
     });
 
@@ -1202,7 +1210,7 @@
     });
 
     socket.on('chat-message-relay', ({ msg }) => {
-      if (msg && !msg.isMe) {
+      if (msg && msg.text && !msg.isMe) {
         appendChatMessage({ ...msg, isMe: false });
       }
     });
