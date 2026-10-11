@@ -124,10 +124,33 @@ io.on('connection', (socket) => {
     console.log(`User ${userName} (${socket.id}) joined video room: ${roomId}`);
   });
 
+// API Route for WebTransport / Server Transport Config
+app.get('/api/transport-info', (req, res) => {
+  res.json({
+    protocol: 'webtransport-quic',
+    fallback: 'websocket-binary',
+    port: PORT,
+    certHash: 'nif3lLUTIOqbbwWugmjAZHSyWZYOqVJwtPRj2cJ7yBo=',
+    maxPacketSize: 65536
+  });
+});
+
   socket.on('signal', ({ targetSocketId, signalData }) => {
     io.to(targetSocketId).emit('signal', {
       senderSocketId: socket.id,
       signalData
+    });
+  });
+
+  // Real-Time Binary Media Relay (High-speed server hub for cross-country QUIC / WebSocket media packets)
+  socket.on('media-chunk', ({ roomId = 'pulse-room', type, chunk, seq }) => {
+    // Broadcast directly to all other peers in the room without peer-to-peer traversal hurdles
+    socket.to(roomId).emit('peer-media-chunk', {
+      senderSocketId: socket.id,
+      type, // 'audio' or 'video'
+      chunk,
+      seq,
+      ts: Date.now()
     });
   });
 
