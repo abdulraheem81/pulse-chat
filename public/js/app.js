@@ -61,6 +61,7 @@
   const typingIndicator = document.getElementById('typing-indicator');
   const typingText = document.getElementById('typing-text');
   const toastEl = document.getElementById('app-toast');
+  const audioUnlockBanner = document.getElementById('audio-unlock-banner');
 
   // Mobile View Navigation DOM elements
   const mobileTabCallBtn = document.getElementById('mobileTabCallBtn');
@@ -210,8 +211,7 @@
 
         const videoEl = cardEl.querySelector('video');
         if (videoEl && peer.stream && videoEl.srcObject !== peer.stream) {
-          videoEl.srcObject = peer.stream;
-          videoEl.play().catch(e => console.log('Peer play:', e));
+          playRemoteVideo(videoEl, peer.stream);
         }
 
         if (peerId === pinnedId) {
@@ -268,12 +268,29 @@
 
       const videoEl = cardEl.querySelector('video');
       if (videoEl && peer.stream && videoEl.srcObject !== peer.stream) {
-        videoEl.srcObject = peer.stream;
-        videoEl.play().catch(e => console.log('Peer play:', e));
+        playRemoteVideo(videoEl, peer.stream);
       }
     });
 
     updateLayoutToolbarUI();
+  }
+
+  function playRemoteVideo(videoEl, stream) {
+    if (!videoEl || !stream) return;
+    videoEl.srcObject = stream;
+    videoEl.muted = false; // Remote audio must be unmuted to listen to the other person!
+    videoEl.volume = 1.0;
+
+    const playPromise = videoEl.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(err => {
+        console.warn('[Audio] Autoplay blocked by browser policy:', err);
+        // Show audio unlock banner so 1 click instantly resumes audio
+        if (audioUnlockBanner) {
+          audioUnlockBanner.classList.remove('hidden');
+        }
+      });
+    }
   }
 
   function updateLayoutToolbarUI() {
@@ -861,6 +878,28 @@
     if (mobileBackToCallBtn) {
       mobileBackToCallBtn.addEventListener('click', () => setMobileView('stage'));
     }
+
+    // Audio Autoplay Policy Unlock (Unmute and play all remote video elements)
+    const unlockAudio = () => {
+      document.querySelectorAll('#videoGrid video').forEach(v => {
+        v.muted = false;
+        v.play().catch(() => {});
+      });
+      if (audioUnlockBanner) {
+        audioUnlockBanner.classList.add('hidden');
+      }
+    };
+
+    if (audioUnlockBanner) {
+      audioUnlockBanner.addEventListener('click', () => {
+        unlockAudio();
+        showToast('Audio unmuted and enabled');
+      });
+    }
+
+    // Unlock on any first click in page to ensure seamless audio listening
+    document.addEventListener('click', unlockAudio, { once: true });
+    document.addEventListener('touchstart', unlockAudio, { once: true });
 
     // Copy Invite Links
     const copyBtns = [

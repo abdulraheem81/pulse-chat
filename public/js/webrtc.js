@@ -80,17 +80,52 @@ class WebRTCManager {
       }
     };
 
+    // Cross-Country ICE Servers (STUN + free TURN for strict symmetric NAT and cross-country firewalls)
     this.rtcConfig = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' }
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        { urls: 'stun:stun.cloudflare.com:3478' },
+        { urls: 'stun:global.stun.twilio.com:3478' },
+        {
+          urls: [
+            'turn:openrelay.metered.ca:80',
+            'turn:openrelay.metered.ca:443',
+            'turn:openrelay.metered.ca:443?transport=tcp'
+          ],
+          username: 'openrelay',
+          credential: 'openrelay'
+        }
       ],
       iceCandidatePoolSize: 10
     };
 
+    // Candidate queue for candidates that arrive before setRemoteDescription
+    this.pendingCandidates = new Map(); // socketId -> array of RTCIceCandidateInit
+
+    // Fetch freshest ICE servers asynchronously from server endpoint
+    this.fetchIceServers();
+
     this.startKeepAlive();
     this.requestWakeLock();
+  }
+
+  async fetchIceServers() {
+    try {
+      const res = await fetch('/api/ice-servers');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.iceServers && data.iceServers.length) {
+          this.rtcConfig.iceServers = data.iceServers;
+          console.log('[WebRTC] Loaded ICE servers with TURN fallback:', this.rtcConfig.iceServers.length);
+        }
+      }
+    } catch (err) {
+      console.warn('[WebRTC] Using built-in ICE servers:', err.message);
+    }
   }
 
   /**
@@ -725,10 +760,19 @@ class WebRTCManager {
       }
     };
 
-    // Remote Track received
+    // Remote Track received (handles both streams[0] and direct track attachment)
     pc.ontrack = (event) => {
-      console.log('Received remote track from:', targetSocketId, event.streams[0]);
-      const stream = event.streams[0];
+      console.log(`[P2P] Received remote track (${event.track.kind}) from:`, targetSocketId);
+      let stream = (event.streams && event.streams[0]) ? event.streams[0] : null;
+
+      if (!stream) {
+        stream = this.remoteStreams.get(targetSocketId);
+        if (!stream) {
+          stream = new MediaStream();
+        }
+        stream.addTrack(event.track);
+      }
+
       this.remoteStreams.set(targetSocketId, stream);
       if (this.onRemoteStream) {
         this.onRemoteStream(targetSocketId, stream);
@@ -760,6 +804,8 @@ class WebRTCManager {
         pc = this.createPeerConnection(senderSocketId, false);
       }
       await pc.setRemoteDescription(new RTCSessionDescription(signalData.sdp));
+      await this.drainPendingCandidates(senderSocketId, pc);
+
       const answer = await pc.createAnswer();
       const modifiedSdp = this.optimizeSdp(answer.sdp);
       const desc = new RTCSessionDescription({ type: 'answer', sdp: modifiedSdp });
@@ -772,21 +818,47 @@ class WebRTCManager {
     } else if (signalData.type === 'answer') {
       if (pc) {
         await pc.setRemoteDescription(new RTCSessionDescription(signalData.sdp));
+        await this.drainPendingCandidates(senderSocketId, pc);
         // Apply bandwidth parameters to newly established connection
         this.applyBandwidthParameters(pc);
       }
     } else if (signalData.type === 'candidate') {
-      if (pc) {
-        try {
-          await pc.addIceCandidate(new RTCIceCandidate(signalData.candidate));
-        } catch (e) {
-          console.warn('[P2P] Candidate error handled:', e);
+      if (signalData.candidate) {
+        if (pc && pc.remoteDescription && pc.remoteDescription.type) {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(signalData.candidate));
+          } catch (e) {
+            console.warn('[P2P] Candidate error handled:', e);
+          }
+        } else {
+          // Queue ICE candidate until remote description is set
+          if (!this.pendingCandidates.has(senderSocketId)) {
+            this.pendingCandidates.set(senderSocketId, []);
+          }
+          this.pendingCandidates.get(senderSocketId).push(signalData.candidate);
         }
       }
     }
   }
 
+  async drainPendingCandidates(senderSocketId, pc) {
+    const queue = this.pendingCandidates.get(senderSocketId);
+    if (!queue || !queue.length) return;
+
+    console.log(`[P2P] Draining ${queue.length} queued ICE candidates for ${senderSocketId}`);
+    while (queue.length > 0) {
+      const cand = queue.shift();
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(cand));
+      } catch (err) {
+        console.warn('[P2P] Queued candidate error:', err);
+      }
+    }
+    this.pendingCandidates.delete(senderSocketId);
+  }
+
   closePeer(socketId) {
+    this.pendingCandidates.delete(socketId);
     const dc = this.dataChannels.get(socketId);
     if (dc) {
       dc.close();
@@ -804,6 +876,7 @@ class WebRTCManager {
   }
 
   cleanUp() {
+    this.pendingCandidates.clear();
     if (this.keepAliveInterval) {
       clearInterval(this.keepAliveInterval);
       this.keepAliveInterval = null;

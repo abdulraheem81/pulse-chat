@@ -44,6 +44,31 @@ function getOrCreateRoom(roomId) {
 // In-memory messages for real users only
 let globalMessages = [];
 
+// API Route for WebRTC ICE Servers (STUN + TURN for cross-country NAT/firewall traversal)
+app.get('/api/ice-servers', (req, res) => {
+  res.json({
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' },
+      { urls: 'stun:global.stun.twilio.com:3478' },
+      // OpenRelay Free TURN Servers (TCP & UDP)
+      {
+        urls: [
+          'turn:openrelay.metered.ca:80',
+          'turn:openrelay.metered.ca:443',
+          'turn:openrelay.metered.ca:443?transport=tcp'
+        ],
+        username: 'openrelay',
+        credential: 'openrelay'
+      }
+    ]
+  });
+});
+
 // API Routes
 app.get('/api/spaces', (req, res) => {
   res.json(Array.from(spaces.values()));
