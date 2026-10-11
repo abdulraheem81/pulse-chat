@@ -142,15 +142,20 @@ app.get('/api/transport-info', (req, res) => {
     });
   });
 
-  // Real-Time Binary Media Relay (High-speed server hub for cross-country QUIC / WebSocket media packets)
-  socket.on('media-chunk', ({ roomId = 'pulse-room', type, chunk, seq }) => {
-    // Broadcast directly to all other peers in the room without peer-to-peer traversal hurdles
-    socket.to(roomId).emit('peer-media-chunk', {
+  // High-Speed WebSocket Binary PCM Audio Relay (100% Reliable across all countries)
+  socket.on('client-audio-pcm', ({ roomId = 'pulse-room', pcm, sampleRate }) => {
+    socket.to(roomId).emit('peer-audio-pcm', {
       senderSocketId: socket.id,
-      type, // 'audio' or 'video'
-      chunk,
-      seq,
-      ts: Date.now()
+      pcm,
+      sampleRate
+    });
+  });
+
+  // Real-Time Video Frame Streaming Relay
+  socket.on('client-video-frame', ({ roomId = 'pulse-room', frame }) => {
+    socket.to(roomId).emit('peer-video-frame', {
+      senderSocketId: socket.id,
+      frame
     });
   });
 
