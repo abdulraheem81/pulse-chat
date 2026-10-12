@@ -26,6 +26,105 @@ app.use(express.static(path.join(__dirname, 'public')));
 const rooms = new Map();
 const spaces = new Map(); // spaceId -> { title, topic, listenersCount: 142, speakers: [], audience: [], handRaises: [] }
 
+// Seed default rich Audio Space
+spaces.set('product-design-1', {
+  id: 'product-design-1',
+  title: 'Design Systems & AI Workflows',
+  topic: '#product-design',
+  description: 'Exploring automated component tokens, token syncs & multimodal design handoff.',
+  listenersCount: 142,
+  speakers: [
+    {
+      id: 'speaker-alex',
+      name: 'Alex Rivers',
+      role: 'HOST',
+      isSpeaking: true,
+      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDWJUeVZ-_dk0vwpI5CjKJh82a4RLPS8ThYCi52vbe7WUslrAfm9HCSkgewQ9WHqC_JMiLvMDz8VpEJlfnFlBNgrb5fC1l8PRzq43vwdQmq8FxKHzrqZSQ3yZF93k-ZWATuXqIvBvSYX1XSbxBX7PHZuYopAhSpbtWCx8FMEqlCEhQZ9u0Bqy8WwrejVZB4obw1Ni_l0dlBg3XRuwTt4Z9Uc_3oipXQx1V-dc1Zzw'
+    },
+    {
+      id: 'speaker-elena',
+      name: 'Elena Rostova',
+      role: 'CO-HOST',
+      isSpeaking: false,
+      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDIG3YTreCJBZheGUATIstbNo-FLMdiXtYuRS03oVK4I5SdeNXcYSCTL818vOpUxciJ0BmDxebxhISKFJBHAgfMQZ2LFKvHnL14hhLY--zU5TMgzujWe3sODEXKjXrgCa6FOOfDlpgrmaR97cYuTvenPHOdGe3gbyqoVIVw-wbiNjscrtNoSMCAfG_qt5CWB-uKdp1CE1X6PNu1BVqs3nRgoyRGcn5ixHJ6VvxqzQ'
+    },
+    {
+      id: 'speaker-marcus',
+      name: 'Marcus Vance',
+      role: 'SPEAKER',
+      isSpeaking: false,
+      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuARdh6soalAFqHAYA8j02LQzlrfVkUM5uSKlY3ekc6T5Ts7d2Hkt5tykjgJC-oxakVKZjTcu6iDLbWo_xpkJB9iUAbZsjWL6uMDWua6_nrVzLUEeBMojiM1uxLNbbc7v7gB-b9iLVN5w9IavQaOWhCmGsBgUo24BK_UpiCipViKwmzdAikbKmcl5Fy9AN7UW4k6cP8kJd6xfWguFN39lyxVH6IGKMw99PROFUNrAA'
+    },
+    {
+      id: 'speaker-sofia',
+      name: 'Sofia Chen',
+      role: 'SPEAKER',
+      isSpeaking: false,
+      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCUDibOkUrZzGMQn0sG7Gobv-TaWhqzPXoV8B4aJgcykWVQdtM9tLDLdw4nw-56Apgfwwnvt6XQdYu2udZ-NxdrjEcewXOaFqaoODAGLt101E861eEIvopCPDTbSP5LnDscsYSF8nVyq4Zs-J5mKGQMMDmMs7ap6m38oBPHjqvwtkfnisyDnL1LA2GQ9gm468foZb1bsmt9nYFde5ARM3fNI5ITNzFvniTkGmOrmg'
+    }
+  ],
+  handRaises: [
+    { id: 'user-kai', name: 'Kai Takahashi', role: 'AUDIENCE' }
+  ],
+  audience: [
+    { id: 'aud-1', name: 'Jordan Hayes', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBmKixmEoiU3rCABD8FoNxxeE5dcyxXdHyNj3GyY5JQ1ExiSrrXhJfIYCEIPUe41GMS1UY3ue31mheAuplxHoDrCvdYH_FRVL_j3c8cSD3i89qjl_DSPbgCUc0zY-DZr4ohKJ73AgYv8mgxBwLBdvjIrJA04HD7wE8gYyMH_YD__3rvUkT3x5EfFjQ2aC1hufLj6n0QLK_9-Lxf8Np3JKrE5Rk70J2w7a-kf2KuAQ' },
+    { id: 'aud-2', name: 'Sarah Miller', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDg8wvF-drbRQH1nXk3HJc8CNECu0AuusB5JBAoOEeBCVTOMOvrWJJ4wkJErOrMA_SY4NGmBfDOpZCt2MFVlS8UB6ReBqxdZyHqKxsCxyJKcO5bqBu4yg8qh-2MeB4Nc81Pu3tXjXeu202aKNOnQqGMQYWjVMb_xoD_z8sv_bvOVrCWSWH6V41TviSWmzXM39XEkAubh_75WquAwL-bsvdFzEdlFWHwlK3pscNokw' },
+    { id: 'aud-3', name: 'Liam O\'Connor', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDA-X-SMwX429ZSg5otvICzNxraAJSnzhPBdWQaFVSlZU5efRreipnDS4BZGPWTMGNb5aiATVdwVTZdLtaE3d5-FuFI_Ygap6PyPPx6P26usr1diUF3AsUPt54Hw8uH5BLV2eTBj9el59jPBzc5TX632PsONEBixPTIf6Bu6n16xgfEx9WJsUu9ddahXI_cRqKuQxB8sPF2XURGl-CiK0gbLa2QYc56Ldo2GQflwA' }
+  ]
+});
+
+// Seed default Call Logs
+let callLogs = [
+  {
+    id: 'log-1',
+    peerName: 'Elena Rostova',
+    room: 'pulse-room',
+    type: 'video',
+    direction: 'incoming',
+    status: 'connected',
+    duration: '24:18',
+    timestamp: 'Today, 14:28',
+    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDIG3YTreCJBZheGUATIstbNo-FLMdiXtYuRS03oVK4I5SdeNXcYSCTL818vOpUxciJ0BmDxebxhISKFJBHAgfMQZ2LFKvHnL14hhLY--zU5TMgzujWe3sODEXKjXrgCa6FOOfDlpgrmaR97cYuTvenPHOdGe3gbyqoVIVw-wbiNjscrtNoSMCAfG_qt5CWB-uKdp1CE1X6PNu1BVqs3nRgoyRGcn5ixHJ6VvxqzQ',
+    quality: 'HD 60FPS • 24ms'
+  },
+  {
+    id: 'log-2',
+    peerName: 'Marcus Vance',
+    room: 'design-sync-42',
+    type: 'video',
+    direction: 'missed',
+    status: 'missed',
+    duration: 'Missed',
+    timestamp: 'Today, 11:05',
+    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuARdh6soalAFqHAYA8j02LQzlrfVkUM5uSKlY3ekc6T5Ts7d2Hkt5tykjgJC-oxakVKZjTcu6iDLbWo_xpkJB9iUAbZsjWL6uMDWua6_nrVzLUEeBMojiM1uxLNbbc7v7gB-b9iLVN5w9IavQaOWhCmGsBgUo24BK_UpiCipViKwmzdAikbKmcl5Fy9AN7UW4k6cP8kJd6xfWguFN39lyxVH6IGKMw99PROFUNrAA',
+    quality: 'Unanswered'
+  },
+  {
+    id: 'log-3',
+    peerName: 'Sofia Chen',
+    room: 'sofia-direct',
+    type: 'audio',
+    direction: 'outgoing',
+    status: 'connected',
+    duration: '18:42',
+    timestamp: 'Yesterday, 19:30',
+    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCUDibOkUrZzGMQn0sG7Gobv-TaWhqzPXoV8B4aJgcykWVQdtM9tLDLdw4nw-56Apgfwwnvt6XQdYu2udZ-NxdrjEcewXOaFqaoODAGLt101E861eEIvopCPDTbSP5LnDscsYSF8nVyq4Zs-J5mKGQMMDmMs7ap6m38oBPHjqvwtkfnisyDnL1LA2GQ9gm468foZb1bsmt9nYFde5ARM3fNI5ITNzFvniTkGmOrmg',
+    quality: 'Studio 48kHz'
+  },
+  {
+    id: 'log-4',
+    peerName: 'Design Systems Space',
+    room: 'product-design-1',
+    type: 'space',
+    direction: 'incoming',
+    status: 'connected',
+    duration: '1 hr 12m',
+    timestamp: 'Yesterday, 16:00',
+    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDWJUeVZ-_dk0vwpI5CjKJh82a4RLPS8ThYCi52vbe7WUslrAfm9HCSkgewQ9WHqC_JMiLvMDz8VpEJlfnFlBNgrb5fC1l8PRzq43vwdQmq8FxKHzrqZSQ3yZF93k-ZWATuXqIvBvSYX1XSbxBX7PHZuYopAhSpbtWCx8FMEqlCEhQZ9u0Bqy8WwrejVZB4obw1Ni_l0dlBg3XRuwTt4Z9Uc_3oipXQx1V-dc1Zzw',
+    quality: 'Spatial 360° • 142 Users'
+  }
+];
+
 // Helper to get or create room with persistent start time
 function getOrCreateRoom(roomId) {
   if (!rooms.has(roomId)) {
@@ -83,6 +182,27 @@ app.get('/api/transport-info', (req, res) => {
 // API Routes
 app.get('/api/spaces', (req, res) => {
   res.json(Array.from(spaces.values()));
+});
+
+app.get('/api/call-logs', (req, res) => {
+  res.json(callLogs);
+});
+
+app.post('/api/call-logs', (req, res) => {
+  const newLog = {
+    id: 'log-' + Date.now(),
+    peerName: req.body.peerName || 'Peer',
+    room: req.body.room || 'pulse-room',
+    type: req.body.type || 'video',
+    direction: req.body.direction || 'outgoing',
+    status: req.body.status || 'connected',
+    duration: req.body.duration || '00:00',
+    timestamp: 'Just now',
+    avatar: req.body.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuBmKixmEoiU3rCABD8FoNxxeE5dcyxXdHyNj3GyY5JQ1ExiSrrXhJfIYCEIPUe41GMS1UY3ue31mheAuplxHoDrCvdYH_FRVL_j3c8cSD3i89qjl_DSPbgCUc0zY-DZr4ohKJ73AgYv8mgxBwLBdvjIrJA04HD7wE8gYyMH_YD__3rvUkT3x5EfFjQ2aC1hufLj6n0QLK_9-Lxf8Np3JKrE5Rk70J2w7a-kf2KuAQ',
+    quality: req.body.quality || 'HD • 24ms'
+  };
+  callLogs.unshift(newLog);
+  res.json({ success: true, log: newLog });
 });
 
 app.get('/api/messages', (req, res) => {

@@ -1,11 +1,14 @@
 /**
  * Pulse — Real Online P2P Multi-Peer Video, Audio & Chat Application
  * Features:
- * - Dynamic Video Sizing, Layout Modes (Grid vs Spotlight), and Full Screen controls
- * - Interactive Draggable & Resizable Picture-in-Picture (PiP)
- * - Per-video aspect ratio toggle (Fit / Fill)
- * - Real online callers only in WebRTC mesh
- * - Call endurance keep-alive & real-time chat
+ * - Studio Multi-View Navigation: Video Studio, Audio Space Stage, Call History & Launcher
+ * - Interactive Audio Space: Host speaking wave ripples, hand raise queue, stage approval
+ * - Call History & Instant Launcher: Random room generator, call back, missed call tracking
+ * - Local Studio Recorder: MediaRecorder client recording with 1-click WebM download
+ * - Virtual Background: Studio blur and glow filter toggle
+ * - In-Call Media: Voice note audio memos and image attachments in P2P chat
+ * - AV Device Selector & Speaker Test modal with live VU meter
+ * - E2EE Direct Channels, Low-Bandwidth adaptation, and Call Endurance keep-alive
  */
 
 (function () {
@@ -22,6 +25,7 @@
   const state = {
     roomId,
     userName,
+    currentView: 'video',  // 'video', 'spaces', 'history'
     callSeconds: 0,
     timerInterval: null,
     isP2PConnected: false,
@@ -32,7 +36,23 @@
     globalFitMode: 'cover', // 'cover' or 'contain'
     pipSizeIndex: 1,       // 0: S (130px), 1: M (180px), 2: L (260px), 3: XL (340px)
     mobileView: 'stage',   // 'stage' or 'chat'
-    unreadChatCount: 0
+    unreadChatCount: 0,
+    isStudioBlur: false,
+    isRecording: false,
+    mediaRecorder: null,
+    recordedChunks: [],
+    recordSeconds: 0,
+    recordInterval: null,
+    voiceRecorder: null,
+    voiceChunks: [],
+    isVoiceRecording: false,
+    voiceTimer: 0,
+    voiceInterval: null,
+    audioSpace: null,
+    hasRaisedHand: false,
+    callLogs: [],
+    historyTab: 'all',     // 'all' or 'missed'
+    historyFilter: 'all'   // 'all', 'video', 'audio', 'space'
   };
 
   const PIP_SIZES = [
@@ -42,44 +62,52 @@
     { label: 'XL', width: 340 }
   ];
 
-  // Socket.io for WebRTC signaling
+  // Socket.io for Signaling & State Sync
   const socket = io();
 
-  // DOM elements
+  // DOM elements - Global
+  const toastEl = document.getElementById('app-toast');
+  const audioUnlockBanner = document.getElementById('audio-unlock-banner');
+  const callTimerEl = document.getElementById('call-timer');
+  const p2pDot = document.getElementById('p2p-dot');
+  const p2pStatusLabel = document.getElementById('p2p-status-label');
+  const copyInviteBtn = document.getElementById('copy-invite-btn');
+
+  // Navigation Tabs & Views
+  const navTabVideo = document.getElementById('navTabVideo');
+  const navTabSpaces = document.getElementById('navTabSpaces');
+  const navTabHistory = document.getElementById('navTabHistory');
+  const viewVideoStudio = document.getElementById('viewVideoStudio');
+  const viewAudioSpace = document.getElementById('viewAudioSpace');
+  const viewCallsHistory = document.getElementById('viewCallsHistory');
+  const quickSpacesBtn = document.getElementById('quickSpacesBtn');
+  const returnToCallBtn = document.getElementById('returnToCallBtn');
+
+  // Video Stage DOM elements
   const videoStage = document.getElementById('videoStage');
   const videoGrid = document.getElementById('videoGrid');
   const remotePlaceholder = document.getElementById('remotePlaceholder');
+  const invitePeerBtn = document.getElementById('invite-peer-btn');
   const pipBox = document.getElementById('pipBox');
   const localVideoEl = document.getElementById('localVideo');
-  const p2pDot = document.getElementById('p2p-dot');
-  const p2pStatusLabel = document.getElementById('p2p-status-label');
-  const callTimerEl = document.getElementById('call-timer');
-  const chatOnlinePill = document.getElementById('chatOnlinePill');
-  const chatStream = document.getElementById('chat-stream');
-  const chatInput = document.getElementById('chat-input');
-  const sendMsgBtn = document.getElementById('send-msg-btn');
-  const typingIndicator = document.getElementById('typing-indicator');
-  const typingText = document.getElementById('typing-text');
-  const toastEl = document.getElementById('app-toast');
-  const audioUnlockBanner = document.getElementById('audio-unlock-banner');
+  const pipBlurBtn = document.getElementById('pipBlurBtn');
+  const studioBlurBtn = document.getElementById('studioBlurBtn');
+  const recordCallBtn = document.getElementById('recordCallBtn');
+  const recordingPill = document.getElementById('recordingPill');
+  const recordingTimer = document.getElementById('recordingTimer');
+  const stopRecordBtn = document.getElementById('stopRecordBtn');
+  const leaveCallBtn = document.getElementById('leaveCallBtn');
 
-  // Mobile View Navigation DOM elements
-  const mobileTabCallBtn = document.getElementById('mobileTabCallBtn');
-  const mobileTabChatBtn = document.getElementById('mobileTabChatBtn');
-  const mobileUnreadBadge = document.getElementById('mobileUnreadBadge');
-  const dockChatBtn = document.getElementById('dockChatBtn');
-  const dockUnreadBadge = document.getElementById('dockUnreadBadge');
-  const mobileBackToCallBtn = document.getElementById('mobileBackToCallBtn');
-
-  // Bandwidth & Low-Data Controls
-  const bandwidthBtn = document.getElementById('bandwidthBtn');
-  const bandwidthLabel = document.getElementById('bandwidthLabel');
-  const bandwidthIcon = document.getElementById('bandwidthIcon');
-  const netLatency = document.getElementById('netLatency');
+  // Video Controls
+  const toggleMicBtn = document.getElementById('toggleMicBtn');
+  const micIcon = document.getElementById('micIcon');
+  const toggleCamBtn = document.getElementById('toggleCamBtn');
+  const camIcon = document.getElementById('camIcon');
+  const shareScreenBtn = document.getElementById('shareScreenBtn');
   const audioOnlyBtn = document.getElementById('audioOnlyBtn');
   const audioOnlyIcon = document.getElementById('audioOnlyIcon');
-
-  // Toolbar & Sizing DOM elements
+  const camFlipBtn = document.getElementById('camFlipBtn');
+  const pipFlipCamBtn = document.getElementById('pipFlipCamBtn');
   const viewGridBtn = document.getElementById('viewGridBtn');
   const viewSpotlightBtn = document.getElementById('viewSpotlightBtn');
   const toggleFitBtn = document.getElementById('toggleFitBtn');
@@ -95,7 +123,132 @@
   const pipResizeHandle = document.getElementById('pipResizeHandle');
   const pipDragHandle = document.getElementById('pipDragHandle');
 
-  // Initialize WebRTC Manager
+  // Bandwidth Telemetry
+  const bandwidthBtn = document.getElementById('bandwidthBtn');
+  const bandwidthLabel = document.getElementById('bandwidthLabel');
+  const bandwidthIcon = document.getElementById('bandwidthIcon');
+  const netLatency = document.getElementById('netLatency');
+
+  // Mobile Controls
+  const mobileTabCallBtn = document.getElementById('mobileTabCallBtn');
+  const mobileTabChatBtn = document.getElementById('mobileTabChatBtn');
+  const mobileUnreadBadge = document.getElementById('mobileUnreadBadge');
+  const dockChatBtn = document.getElementById('dockChatBtn');
+  const dockUnreadBadge = document.getElementById('dockUnreadBadge');
+  const mobileBackToCallBtn = document.getElementById('mobileBackToCallBtn');
+
+  // Chat Elements
+  const chatSection = document.getElementById('chatSection');
+  const chatStream = document.getElementById('chat-stream');
+  const chatInput = document.getElementById('chat-input');
+  const sendMsgBtn = document.getElementById('send-msg-btn');
+  const emojiQuickBtn = document.getElementById('emoji-quick-btn');
+  const typingIndicator = document.getElementById('typing-indicator');
+  const typingText = document.getElementById('typing-text');
+  const chatOnlinePill = document.getElementById('chatOnlinePill');
+  const exportChatBtn = document.getElementById('exportChatBtn');
+  const voiceNoteBtn = document.getElementById('voiceNoteBtn');
+  const voiceNoteRecBar = document.getElementById('voiceNoteRecBar');
+  const voiceRecTimer = document.getElementById('voiceRecTimer');
+  const cancelVoiceNoteBtn = document.getElementById('cancelVoiceNoteBtn');
+  const chatFileInput = document.getElementById('chatFileInput');
+
+  // Settings Modal Elements
+  const settingsModalBtn = document.getElementById('settingsModalBtn');
+  const settingsModal = document.getElementById('settingsModal');
+  const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+  const cameraSelect = document.getElementById('cameraSelect');
+  const micSelect = document.getElementById('micSelect');
+  const micVuBar = document.getElementById('micVuBar');
+  const vuLevelText = document.getElementById('vuLevelText');
+  const testSpeakerBtn = document.getElementById('testSpeakerBtn');
+  const diagRtt = document.getElementById('diagRtt');
+
+  // Audio Space Elements
+  const spaceTopicTag = document.getElementById('spaceTopicTag');
+  const spaceListenersCount = document.getElementById('spaceListenersCount');
+  const spaceTitle = document.getElementById('spaceTitle');
+  const spaceDesc = document.getElementById('spaceDesc');
+  const spaceSpeakersGrid = document.getElementById('spaceSpeakersGrid');
+  const spaceSpeakerBadge = document.getElementById('spaceSpeakerBadge');
+  const handRaisesList = document.getElementById('handRaisesList');
+  const handRaisesBadge = document.getElementById('handRaisesBadge');
+  const spaceAudienceGrid = document.getElementById('spaceAudienceGrid');
+  const spaceHandBtn = document.getElementById('spaceHandBtn');
+  const spaceHandBtnText = document.getElementById('spaceHandBtnText');
+  const spaceMicBtn = document.getElementById('spaceMicBtn');
+  const spaceLeaveBtn = document.getElementById('spaceLeaveBtn');
+
+  // Call History Elements
+  const launcherRoomInput = document.getElementById('launcherRoomInput');
+  const randomizeRoomBtn = document.getElementById('randomizeRoomBtn');
+  const launchVideoBtn = document.getElementById('launchVideoBtn');
+  const launchSpaceBtn = document.getElementById('launchSpaceBtn');
+  const historyTabAll = document.getElementById('historyTabAll');
+  const historyTabMissed = document.getElementById('historyTabMissed');
+  const callLogsContainer = document.getElementById('callLogsContainer');
+
+  // ==========================================
+  // AUDIO SYNTHESIZER (STUDIO CHIMES)
+  // ==========================================
+  function playStudioChime(type) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      const now = ctx.currentTime;
+      if (type === 'join') {
+        // Ascending harmonic chime
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.18);
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.15, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.start(now);
+        osc.stop(now + 0.45);
+      } else if (type === 'message') {
+        // Soft bubble pop
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      } else if (type === 'speaker-test') {
+        // Harmonic studio bell
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now); // C5
+        osc.frequency.setValueAtTime(659.25, now + 0.15); // E5
+        osc.frequency.setValueAtTime(783.99, now + 0.3); // G5
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+        osc.start(now);
+        osc.stop(now + 0.75);
+      } else if (type === 'leave') {
+        // Descending tone
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(660, now);
+        osc.frequency.exponentialRampToValueAtTime(330, now + 0.2);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.35);
+      }
+    } catch (e) {
+      // AudioContext unavailable or blocked
+    }
+  }
+
+  // ==========================================
+  // INITIALIZE WEBRTC / WEBSOCKET MEDIA
+  // ==========================================
   const webrtc = new WebRTCManager(
     socket,
     // On Remote Stream Received (Real Online Peer)
@@ -111,6 +264,7 @@
       });
       updateGridUI();
       setP2PStatus(true);
+      playStudioChime('join');
       showToast(`Connected with ${state.activePeers.get(remoteSocketId)?.name || 'peer'}`);
     },
     // On Remote Stream Removed
@@ -121,37 +275,73 @@
       }
       removeRemotePeer(remoteSocketId);
       updateGridUI();
+      playStudioChime('leave');
       if (state.activePeers.size === 0) {
         setP2PStatus(false);
       }
     },
-    // On Audio Volume (Local Visualizer)
+    // On Audio Volume (Local Visualizer & Settings VU meter)
     (volume) => {
       const pipBars = document.querySelectorAll('.pip-soundwave-bar');
       pipBars.forEach((bar, index) => {
         const height = Math.max(2, Math.min(14, (volume / 100) * 14 * (0.7 + (index % 2) * 0.3)));
         bar.style.height = `${height}px`;
       });
+      if (micVuBar) {
+        micVuBar.style.width = `${Math.min(100, volume * 1.4)}%`;
+      }
     },
-    // On P2P DataChannel Message (Peer-to-Peer Chat)
+    // On P2P Direct Data Message
     (senderSocketId, payload) => {
       handleP2PMessage(senderSocketId, payload);
     },
-    // On P2P DataChannel State Change
+    // On P2P State Change
     (senderSocketId, channelState) => {
-      console.log(`[Mesh] DataChannel (${senderSocketId}) state: ${channelState}`);
+      console.log(`[Mesh] Channel (${senderSocketId}) state: ${channelState}`);
       setP2PStatus(channelState === 'open' || state.activePeers.size > 0);
     }
   );
+
   if (webrtc.setRoomId) {
     webrtc.setRoomId(state.roomId);
   }
   state.webrtc = webrtc;
 
   // ==========================================
+  // TOP MULTI-VIEW NAVIGATION
+  // ==========================================
+  function setAppView(view) {
+    state.currentView = view;
+
+    // Reset view tabs
+    [navTabVideo, navTabSpaces, navTabHistory].forEach(tab => {
+      if (tab) {
+        tab.className = 'flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 rounded-full text-on-surface-variant hover:text-on-surface transition-all';
+      }
+    });
+
+    // Hide all views
+    if (viewVideoStudio) viewVideoStudio.classList.add('hidden');
+    if (viewAudioSpace) viewAudioSpace.classList.add('hidden');
+    if (viewCallsHistory) viewCallsHistory.classList.add('hidden');
+
+    if (view === 'video') {
+      if (navTabVideo) navTabVideo.className = 'flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 rounded-full bg-primary text-on-primary font-bold shadow-sm transition-all';
+      if (viewVideoStudio) viewVideoStudio.classList.remove('hidden');
+    } else if (view === 'spaces') {
+      if (navTabSpaces) navTabSpaces.className = 'flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 rounded-full bg-secondary text-on-secondary font-bold shadow-sm transition-all relative';
+      if (viewAudioSpace) viewAudioSpace.classList.remove('hidden');
+      loadAudioSpace();
+    } else if (view === 'history') {
+      if (navTabHistory) navTabHistory.className = 'flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 rounded-full bg-surface-container-high text-on-surface font-bold shadow-sm transition-all';
+      if (viewCallsHistory) viewCallsHistory.classList.remove('hidden');
+      loadCallLogs();
+    }
+  }
+
+  // ==========================================
   // REAL ONLINE PEER GRID & SIZING MANAGEMENT
   // ==========================================
-
   function addRemotePeer(peerId, peerData) {
     state.activePeers.set(peerId, peerData);
     updatePeerCounters();
@@ -172,12 +362,8 @@
     setP2PStatus(state.activePeers.size > 0);
   }
 
-  /**
-   * Updates the video grid layout: Grid Mode vs Spotlight Mode
-   */
   function updateGridUI() {
     if (!videoGrid) return;
-
     const count = state.activePeers.size;
 
     if (count === 0) {
@@ -188,9 +374,8 @@
 
     if (remotePlaceholder) remotePlaceholder.classList.add('hidden');
 
-    // 1. Spotlight / Pinned Mode
+    // 1. Spotlight Mode
     if (state.layoutMode === 'spotlight' || state.pinnedPeerId) {
-      // Determine which peer to pin
       let pinnedId = state.pinnedPeerId;
       if (!pinnedId || !state.activePeers.has(pinnedId)) {
         pinnedId = state.activePeers.keys().next().value;
@@ -198,8 +383,6 @@
       }
 
       videoGrid.className = 'w-full h-full peer-grid-spotlight relative overflow-hidden transition-all duration-300';
-
-      // Ensure thumbnail strip container exists
       let thumbStrip = videoGrid.querySelector('.thumbnail-strip');
       if (!thumbStrip) {
         thumbStrip = document.createElement('div');
@@ -208,9 +391,7 @@
 
       state.activePeers.forEach((peer, peerId) => {
         let cardEl = document.getElementById(`peer-card-${peerId}`);
-        if (!cardEl) {
-          cardEl = createPeerCardElement(peerId, peer);
-        }
+        if (!cardEl) cardEl = createPeerCardElement(peerId, peer);
 
         const videoEl = cardEl.querySelector('video');
         if (videoEl && peer.stream && videoEl.srcObject !== peer.stream) {
@@ -219,13 +400,11 @@
 
         if (peerId === pinnedId) {
           cardEl.classList.add('pinned');
-          // Put pinned card in main grid container
           if (cardEl.parentElement !== videoGrid) {
             videoGrid.insertBefore(cardEl, thumbStrip);
           }
         } else {
           cardEl.classList.remove('pinned');
-          // Put other cards in thumbnail strip
           thumbStrip.appendChild(cardEl);
         }
       });
@@ -235,31 +414,22 @@
       } else if (thumbStrip.children.length === 0 && videoGrid.contains(thumbStrip)) {
         thumbStrip.remove();
       }
-
       updateLayoutToolbarUI();
       return;
     }
 
-    // 2. Normal Equal Grid Mode
-    // Remove thumbnail strip and clean pinned classes
+    // 2. Normal Grid Mode
     const existingStrip = videoGrid.querySelector('.thumbnail-strip');
     if (existingStrip) {
-      const cardsInStrip = Array.from(existingStrip.children);
-      cardsInStrip.forEach(c => videoGrid.appendChild(c));
+      Array.from(existingStrip.children).forEach(c => videoGrid.appendChild(c));
       existingStrip.remove();
     }
 
     videoGrid.className = 'w-full h-full grid gap-2 sm:gap-3 transition-all duration-300';
-
-    if (count === 1) {
-      videoGrid.classList.add('peer-grid-1');
-    } else if (count === 2) {
-      videoGrid.classList.add('peer-grid-2');
-    } else if (count <= 4) {
-      videoGrid.classList.add('peer-grid-4');
-    } else {
-      videoGrid.classList.add('peer-grid-6');
-    }
+    if (count === 1) videoGrid.classList.add('peer-grid-1');
+    else if (count === 2) videoGrid.classList.add('peer-grid-2');
+    else if (count <= 4) videoGrid.classList.add('peer-grid-4');
+    else videoGrid.classList.add('peer-grid-6');
 
     state.activePeers.forEach((peer, peerId) => {
       let cardEl = document.getElementById(`peer-card-${peerId}`);
@@ -268,7 +438,6 @@
         videoGrid.appendChild(cardEl);
       }
       cardEl.classList.remove('pinned');
-
       const videoEl = cardEl.querySelector('video');
       if (videoEl && peer.stream && videoEl.srcObject !== peer.stream) {
         playRemoteVideo(videoEl, peer.stream);
@@ -281,19 +450,12 @@
   function playRemoteVideo(videoEl, stream) {
     if (!videoEl || !stream) return;
     videoEl.srcObject = stream;
-    videoEl.muted = false; // Remote audio must be unmuted to listen to the other person!
+    videoEl.muted = false;
     videoEl.volume = 1.0;
-
-    const playPromise = videoEl.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(err => {
-        console.warn('[Audio] Autoplay blocked by browser policy:', err);
-        // Show audio unlock banner so 1 click instantly resumes audio
-        if (audioUnlockBanner) {
-          audioUnlockBanner.classList.remove('hidden');
-        }
-      });
-    }
+    videoEl.play().catch(err => {
+      console.warn('[Audio] Autoplay blocked, banner visible:', err);
+      if (audioUnlockBanner) audioUnlockBanner.classList.remove('hidden');
+    });
   }
 
   function updateLayoutToolbarUI() {
@@ -308,9 +470,6 @@
     }
   }
 
-  /**
-   * Create an individual real peer video card with resize & fullscreen controls
-   */
   function createPeerCardElement(peerId, peer) {
     const card = document.createElement('div');
     card.id = `peer-card-${peerId}`;
@@ -319,10 +478,7 @@
     const fitClass = state.globalFitMode === 'contain' ? 'object-contain' : 'object-cover';
 
     card.innerHTML = `
-      <!-- Remote Video Stream -->
       <video class="w-full h-full ${fitClass} relative z-10 transition-all duration-200" playsinline autoplay></video>
-      
-      <!-- Video Backdrop Vignette -->
       <div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/90 via-transparent to-surface-container-lowest/30 z-10 pointer-events-none"></div>
 
       <!-- Peer Header Tag Top-Left -->
@@ -330,29 +486,24 @@
         <div class="bg-surface-container-lowest/80 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-white/10 shadow-md">
           <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
           <span class="text-xs font-headline font-semibold text-on-surface truncate max-w-[140px]">${escapeHtml(peer.name)}</span>
-          <span class="bg-surface-container-high px-1 py-0.2 rounded text-[9px] font-mono text-primary font-bold uppercase">ONLINE</span>
+          <span class="bg-surface-container-high px-1 py-0.2 rounded text-[9px] font-mono text-primary font-bold uppercase">LIVE</span>
         </div>
       </div>
 
       <!-- Video Control Actions Top-Right -->
       <div class="absolute top-2.5 right-2.5 z-20 flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-        <!-- Pin / Spotlight Button -->
-        <button class="peer-pin-btn w-6 h-6 rounded-full bg-black/60 hover:bg-black/90 text-on-surface hover:text-primary flex items-center justify-center text-[12px] shadow-sm transition-colors" title="Pin / Spotlight this video">
+        <button class="peer-pin-btn w-6 h-6 rounded-full bg-black/60 hover:bg-black/90 text-on-surface hover:text-primary flex items-center justify-center text-[12px] shadow-sm transition-colors" title="Pin / Spotlight">
           <span class="material-symbols-outlined text-[14px]">push_pin</span>
         </button>
-
-        <!-- Fit / Crop Button -->
-        <button class="peer-fit-btn w-6 h-6 rounded-full bg-black/60 hover:bg-black/90 text-on-surface hover:text-primary flex items-center justify-center text-[12px] shadow-sm transition-colors" title="Toggle Fit / Crop">
+        <button class="peer-fit-btn w-6 h-6 rounded-full bg-black/60 hover:bg-black/90 text-on-surface hover:text-primary flex items-center justify-center text-[12px] shadow-sm transition-colors" title="Fit / Fill">
           <span class="material-symbols-outlined text-[14px]">fit_screen</span>
         </button>
-
-        <!-- Fullscreen Button -->
-        <button class="peer-fs-btn w-6 h-6 rounded-full bg-black/60 hover:bg-black/90 text-on-surface hover:text-primary flex items-center justify-center text-[12px] shadow-sm transition-colors" title="Full Screen Video">
+        <button class="peer-fs-btn w-6 h-6 rounded-full bg-black/60 hover:bg-black/90 text-on-surface hover:text-primary flex items-center justify-center text-[12px] shadow-sm transition-colors" title="Fullscreen">
           <span class="material-symbols-outlined text-[14px]">fullscreen</span>
         </button>
       </div>
 
-      <!-- Peer Acoustic Bar Bottom-Left -->
+      <!-- Acoustic Wave Bar Bottom-Left -->
       <div class="absolute bottom-2.5 left-2.5 z-20 flex items-center gap-2 pointer-events-none">
         <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-lowest/80 backdrop-blur-md border border-white/5 shadow-md">
           <div class="flex items-center gap-0.5 h-3">
@@ -365,7 +516,6 @@
       </div>
     `;
 
-    // Hook buttons on the card
     const pinBtn = card.querySelector('.peer-pin-btn');
     const fitBtn = card.querySelector('.peer-fit-btn');
     const fsBtn = card.querySelector('.peer-fs-btn');
@@ -382,15 +532,9 @@
       fitBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const isContain = videoEl.classList.contains('object-contain');
-        if (isContain) {
-          videoEl.classList.remove('object-contain');
-          videoEl.classList.add('object-cover');
-          showToast('Video set to fill frame (cover)');
-        } else {
-          videoEl.classList.remove('object-cover');
-          videoEl.classList.add('object-contain');
-          showToast('Video set to full view (fit)');
-        }
+        videoEl.classList.toggle('object-contain', !isContain);
+        videoEl.classList.toggle('object-cover', isContain);
+        showToast(isContain ? 'Video: Crop fill' : 'Video: Full frame');
       });
     }
 
@@ -401,17 +545,10 @@
       });
     }
 
-    // Double-click card to Pin / Unpin
-    card.addEventListener('dblclick', () => {
-      togglePinPeer(peerId);
-    });
-
+    card.addEventListener('dblclick', () => togglePinPeer(peerId));
     return card;
   }
 
-  /**
-   * Toggles pinning / spotlighting a peer
-   */
   function togglePinPeer(peerId) {
     if (state.pinnedPeerId === peerId) {
       state.pinnedPeerId = null;
@@ -420,52 +557,39 @@
     } else {
       state.pinnedPeerId = peerId;
       state.layoutMode = 'spotlight';
-      showToast('Video pinned to spotlight view');
+      showToast('Pinned to spotlight view');
     }
     updateGridUI();
   }
 
-  /**
-   * Fullscreen API handler (handles native fullscreen and escapes cleanly)
-   */
   function toggleFullscreen(targetEl) {
     const el = targetEl || videoStage || document.documentElement;
-
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-      if (el.requestFullscreen) {
-        el.requestFullscreen().catch(err => console.warn('FS error:', err));
-      } else if (el.webkitRequestFullscreen) {
-        el.webkitRequestFullscreen();
-      }
-      showToast('Entered Fullscreen');
+      if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      showToast('Fullscreen enabled');
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      }
-      showToast('Exited Fullscreen');
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      showToast('Exited fullscreen');
     }
   }
 
-  // Monitor fullscreen changes to update icon visuals
   function onFullscreenChange() {
     const isFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
-    const iconName = isFs ? 'fullscreen_exit' : 'fullscreen';
-    if (stageFullscreenIcon) stageFullscreenIcon.textContent = iconName;
-    if (dockFullscreenIcon) dockFullscreenIcon.textContent = iconName;
+    const icon = isFs ? 'fullscreen_exit' : 'fullscreen';
+    if (stageFullscreenIcon) stageFullscreenIcon.textContent = icon;
+    if (dockFullscreenIcon) dockFullscreenIcon.textContent = icon;
   }
   document.addEventListener('fullscreenchange', onFullscreenChange);
   document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 
   // ==========================================
-  // DRAGGABLE & RESIZABLE PIP (LOCAL SELF VIDEO)
+  // DRAGGABLE & RESIZABLE PIP
   // ==========================================
-
   function setupPipControls() {
     if (!pipBox) return;
 
-    // 1. Cycle PiP Size Button (S / M / L / XL)
     if (pipSizeBtn) {
       pipSizeBtn.addEventListener('click', () => {
         state.pipSizeIndex = (state.pipSizeIndex + 1) % PIP_SIZES.length;
@@ -476,30 +600,23 @@
       });
     }
 
-    // 2. PiP Fit / Contain Toggle
     if (pipFitBtn && localVideoEl) {
       pipFitBtn.addEventListener('click', () => {
         const isContain = localVideoEl.classList.contains('object-contain');
-        if (isContain) {
-          localVideoEl.classList.remove('object-contain');
-          localVideoEl.classList.add('object-cover');
-          showToast('Local cam: Crop Fill');
-        } else {
-          localVideoEl.classList.remove('object-cover');
-          localVideoEl.classList.add('object-contain');
-          showToast('Local cam: Full Fit');
-        }
+        localVideoEl.classList.toggle('object-contain', !isContain);
+        localVideoEl.classList.toggle('object-cover', isContain);
+        showToast(isContain ? 'Local cam: Fill' : 'Local cam: Fit');
       });
     }
 
-    // 3. PiP Fullscreen Toggle
     if (pipFullscreenBtn) {
-      pipFullscreenBtn.addEventListener('click', () => {
-        toggleFullscreen(pipBox);
-      });
+      pipFullscreenBtn.addEventListener('click', () => toggleFullscreen(pipBox));
     }
 
-    // 4. Interactive Drag-to-Resize Corner Handle (Freeform Sizing)
+    if (pipBlurBtn) {
+      pipBlurBtn.addEventListener('click', toggleStudioBlur);
+    }
+
     if (pipResizeHandle) {
       let isResizing = false;
       let startX = 0;
@@ -517,7 +634,6 @@
 
       window.addEventListener('pointermove', (e) => {
         if (!isResizing) return;
-        // As user drags bottom-left handle leftward, width increases
         const deltaX = startX - e.clientX;
         const newWidth = Math.max(100, Math.min(500, startWidth + deltaX));
         pipBox.style.width = `${newWidth}px`;
@@ -531,7 +647,6 @@
       });
     }
 
-    // 5. Interactive Drag-to-Move across Video Stage
     const dragTarget = pipDragHandle || pipBox;
     let isDragging = false;
     let dragStartX = 0;
@@ -540,9 +655,7 @@
     let initialTop = 0;
 
     dragTarget.addEventListener('pointerdown', (e) => {
-      // Don't drag if clicking buttons or resize handle
       if (e.target.closest('button') || e.target.closest('#pipResizeHandle')) return;
-
       isDragging = true;
       pipBox.classList.add('dragging');
       dragStartX = e.clientX;
@@ -550,14 +663,12 @@
 
       const rect = pipBox.getBoundingClientRect();
       const parentRect = (videoStage || pipBox.parentElement).getBoundingClientRect();
-
       initialLeft = rect.left - parentRect.left;
       initialTop = rect.top - parentRect.top;
 
-      pipBox.style.right = 'auto'; // release fixed right alignment
+      pipBox.style.right = 'auto';
       pipBox.style.left = `${initialLeft}px`;
       pipBox.style.top = `${initialTop}px`;
-
       dragTarget.setPointerCapture(e.pointerId);
     });
 
@@ -586,118 +697,103 @@
   }
 
   // ==========================================
-  // CALL ENDURANCE (MAKE CALL LAST LONGER)
+  // VIRTUAL STUDIO BLUR
   // ==========================================
-
-  function startCallTimer() {
-    const savedTime = sessionStorage.getItem('pulse_call_seconds');
-    if (savedTime && !isNaN(parseInt(savedTime, 10))) {
-      state.callSeconds = parseInt(savedTime, 10);
+  function toggleStudioBlur() {
+    state.isStudioBlur = !state.isStudioBlur;
+    if (localVideoEl) {
+      localVideoEl.classList.toggle('studio-blur', state.isStudioBlur);
     }
-
-    if (state.timerInterval) clearInterval(state.timerInterval);
-    state.timerInterval = setInterval(() => {
-      state.callSeconds++;
-      sessionStorage.setItem('pulse_call_seconds', state.callSeconds);
-
-      const mins = Math.floor(state.callSeconds / 60);
-      const secs = state.callSeconds % 60;
-      const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-
-      if (callTimerEl) callTimerEl.textContent = timeStr;
-    }, 1000);
-  }
-
-  function setP2PStatus(connected) {
-    state.isP2PConnected = connected;
-    if (!p2pDot || !p2pStatusLabel) return;
-
-    const peerCount = state.activePeers.size;
-
-    if (connected && peerCount > 0) {
-      p2pDot.className = 'w-2.5 h-2.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#4edea3]';
-      p2pStatusLabel.className = 'text-primary font-bold';
-      p2pStatusLabel.textContent = `${peerCount + 1} online (Mesh E2EE)`;
-    } else {
-      p2pDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400';
-      p2pStatusLabel.className = 'text-on-surface-variant font-medium';
-      p2pStatusLabel.textContent = 'Waiting for peer';
+    if (studioBlurBtn) {
+      studioBlurBtn.classList.toggle('bg-primary', state.isStudioBlur);
+      studioBlurBtn.classList.toggle('text-on-primary', state.isStudioBlur);
     }
+    showToast(state.isStudioBlur ? 'Studio Background Blur: Enabled' : 'Studio Background Blur: Off');
   }
 
   // ==========================================
-  // REAL-TIME P2P CHAT
+  // LOCAL STUDIO CALL RECORDER
   // ==========================================
+  function startStudioRecording() {
+    if (state.isRecording) {
+      stopStudioRecording();
+      return;
+    }
 
-  function appendMilestone(text, iconName = 'info') {
-    if (!chatStream) return;
-    const div = document.createElement('div');
-    div.className = 'flex items-center justify-center my-2';
-    div.innerHTML = `
-      <div class="bg-surface-container-low px-3 py-1 rounded-full flex items-center gap-2 shadow-sm border border-white/5 text-[11px] font-mono text-on-surface-variant">
-        <span class="material-symbols-outlined text-primary text-[14px]">${iconName}</span>
-        <span>${escapeHtml(text)}</span>
-      </div>
-    `;
-    chatStream.appendChild(div);
-    chatStream.scrollTop = chatStream.scrollHeight;
-  }
+    try {
+      const stream = localVideoEl?.srcObject || webrtc.localStream;
+      if (!stream) {
+        showToast('No active media feed to record');
+        return;
+      }
 
-  function setMobileView(view) {
-    state.mobileView = view;
-    if (view === 'stage') {
-      document.body.classList.remove('mobile-view-chat');
-      document.body.classList.add('mobile-view-stage');
-      if (mobileTabCallBtn) {
-        mobileTabCallBtn.className = 'flex items-center gap-1 px-3 py-1 rounded-full bg-primary text-on-primary font-bold shadow-sm transition-all';
+      state.recordedChunks = [];
+      const options = { mimeType: 'video/webm;codecs=vp8,opus' };
+      const recorder = MediaRecorder.isTypeSupported(options.mimeType)
+        ? new MediaRecorder(stream, options)
+        : new MediaRecorder(stream);
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          state.recordedChunks.push(e.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(state.recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `pulse-call-recording-${Date.now()}.webm`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => a.remove(), 100);
+        showToast('Studio recording saved and downloaded!');
+      };
+
+      recorder.start(1000);
+      state.mediaRecorder = recorder;
+      state.isRecording = true;
+      state.recordSeconds = 0;
+
+      if (recordingPill) recordingPill.classList.remove('hidden');
+      if (recordCallBtn) {
+        recordCallBtn.classList.add('bg-error-container', 'text-error');
       }
-      if (mobileTabChatBtn) {
-        mobileTabChatBtn.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-on-surface-variant hover:text-on-surface transition-all relative';
-      }
-    } else {
-      document.body.classList.remove('mobile-view-stage');
-      document.body.classList.add('mobile-view-chat');
-      if (mobileTabChatBtn) {
-        mobileTabChatBtn.className = 'flex items-center gap-1 px-3 py-1 rounded-full bg-primary text-on-primary font-bold shadow-sm transition-all relative';
-      }
-      if (mobileTabCallBtn) {
-        mobileTabCallBtn.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-on-surface-variant hover:text-on-surface transition-all';
-      }
-      // Reset unread counter when viewing chat
-      state.unreadChatCount = 0;
-      updateUnreadBadges();
-      // Scroll chat to bottom
-      if (chatStream) {
-        setTimeout(() => {
-          chatStream.scrollTop = chatStream.scrollHeight;
-        }, 50);
-      }
+
+      if (state.recordInterval) clearInterval(state.recordInterval);
+      state.recordInterval = setInterval(() => {
+        state.recordSeconds++;
+        const m = Math.floor(state.recordSeconds / 60).toString().padStart(2, '0');
+        const s = (state.recordSeconds % 60).toString().padStart(2, '0');
+        if (recordingTimer) recordingTimer.textContent = `${m}:${s}`;
+      }, 1000);
+
+      showToast('Recording started');
+    } catch (err) {
+      console.warn('Recording error:', err);
+      showToast('Could not start recording: ' + err.message);
     }
   }
 
-  function updateUnreadBadges() {
-    if (mobileUnreadBadge) {
-      if (state.unreadChatCount > 0) {
-        mobileUnreadBadge.textContent = state.unreadChatCount > 9 ? '9+' : state.unreadChatCount;
-        mobileUnreadBadge.classList.remove('hidden');
-        mobileUnreadBadge.classList.add('flex');
-      } else {
-        mobileUnreadBadge.classList.add('hidden');
-        mobileUnreadBadge.classList.remove('flex');
-      }
+  function stopStudioRecording() {
+    if (!state.isRecording) return;
+    if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+      state.mediaRecorder.stop();
     }
-    if (dockUnreadBadge) {
-      if (state.unreadChatCount > 0) {
-        dockUnreadBadge.classList.remove('hidden');
-      } else {
-        dockUnreadBadge.classList.add('hidden');
-      }
+    state.isRecording = false;
+    if (state.recordInterval) clearInterval(state.recordInterval);
+    if (recordingPill) recordingPill.classList.add('hidden');
+    if (recordCallBtn) {
+      recordCallBtn.classList.remove('bg-error-container', 'text-error');
     }
   }
 
+  // ==========================================
+  // IN-CALL CHAT & VOICE NOTE MEMOS
+  // ==========================================
   function appendChatMessage(msg) {
     if (!chatStream) return;
-
     const div = document.createElement('div');
     const isMe = msg.isMe;
 
@@ -705,15 +801,33 @@
       ? 'flex flex-col items-end self-end max-w-[85%] space-y-1 ml-auto'
       : 'flex flex-col items-start self-start max-w-[85%] space-y-1 mr-auto';
 
+    let contentHtml = '';
+    if (msg.imageUrl) {
+      contentHtml = `<img src="${msg.imageUrl}" class="rounded-xl max-h-48 object-cover border border-white/10 shadow-md mb-1" />`;
+    }
+    if (msg.audioUrl) {
+      contentHtml += `
+        <div class="flex items-center gap-2 p-2 bg-surface-container-highest/80 rounded-xl">
+          <span class="material-symbols-outlined text-primary text-[20px]">mic</span>
+          <audio controls src="${msg.audioUrl}" class="h-7 w-48"></audio>
+        </div>
+      `;
+    }
+    if (msg.text) {
+      contentHtml += `
+        <div class="${isMe ? 'bg-primary text-on-primary-container' : 'bg-surface-container-high text-on-surface border border-white/5'} px-3.5 py-2 rounded-2xl ${isMe ? 'rounded-br-xs' : 'rounded-bl-xs'} shadow-sm break-words leading-relaxed text-sm">
+          ${escapeHtml(msg.text)}
+        </div>
+      `;
+    }
+
     div.innerHTML = `
-      <div class="${isMe ? 'bg-primary text-on-primary-container' : 'bg-surface-container-high text-on-surface border border-white/5'} px-3.5 py-2 rounded-2xl ${isMe ? 'rounded-br-xs' : 'rounded-bl-xs'} shadow-sm break-words leading-relaxed text-sm">
-        ${escapeHtml(msg.text)}
-      </div>
+      ${contentHtml}
       <div class="flex items-center gap-1.5 px-1 text-[11px] font-mono text-on-surface-variant">
         <span>${escapeHtml(msg.sender)}</span>
         <span>•</span>
         <span>${msg.timestamp}</span>
-        ${msg.isP2P ? '<span class="bg-primary/20 text-primary px-1 rounded text-[9px] font-bold">P2P</span>' : ''}
+        ${msg.isP2P ? '<span class="bg-primary/20 text-primary px-1 rounded text-[9px] font-bold">E2EE</span>' : ''}
         ${isMe ? '<span class="material-symbols-outlined text-[13px] text-primary">done_all</span>' : ''}
       </div>
     `;
@@ -721,25 +835,13 @@
     chatStream.appendChild(div);
     chatStream.scrollTop = chatStream.scrollHeight;
 
-    // Handle mobile unread badge if message received from peer while on stage view
-    if (!isMe && state.mobileView === 'stage') {
-      state.unreadChatCount++;
-      updateUnreadBadges();
+    if (!isMe) {
+      playStudioChime('message');
+      if (state.mobileView === 'stage') {
+        state.unreadChatCount++;
+        updateUnreadBadges();
+      }
     }
-  }
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  function getCurrentTime() {
-    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
   function sendMessage() {
@@ -762,17 +864,11 @@
     appendChatMessage(msg);
     chatInput.value = '';
 
-    // Broadcast directly over WebRTC RTCDataChannel or WebSocket direct data
     const sentDirect = webrtc.sendP2PMessage({
       type: 'chat',
-      msg: {
-        ...msg,
-        isMe: false,
-        isP2P: true
-      }
+      msg: { ...msg, isMe: false, isP2P: true }
     });
 
-    // If direct send was not available, broadcast over socket relay as mesh fallback
     if (!sentDirect) {
       socket.emit('chat-message-relay', { roomId: state.roomId, msg });
     }
@@ -780,13 +876,30 @@
 
   function handleP2PMessage(senderSocketId, payload) {
     if (!payload) return;
-
     if (payload.type === 'chat' && payload.msg) {
       const msg = payload.msg;
       msg.isMe = false;
       msg.isP2P = true;
       appendChatMessage(msg);
       showToast(`Message from ${msg.sender}`);
+    } else if (payload.type === 'voice-note') {
+      appendChatMessage({
+        id: 'msg-' + Date.now(),
+        sender: payload.sender || 'Peer',
+        audioUrl: payload.audioUrl,
+        isMe: false,
+        isP2P: true,
+        timestamp: getCurrentTime()
+      });
+    } else if (payload.type === 'image') {
+      appendChatMessage({
+        id: 'msg-' + Date.now(),
+        sender: payload.sender || 'Peer',
+        imageUrl: payload.imgData,
+        isMe: false,
+        isP2P: true,
+        timestamp: getCurrentTime()
+      });
     } else if (payload.type === 'typing') {
       showTyping(payload.sender || 'Peer');
     } else if (payload.type === 'reaction') {
@@ -800,21 +913,282 @@
     typingText.textContent = `${name} is typing...`;
     typingIndicator.classList.remove('hidden');
     typingIndicator.classList.add('flex');
-
     if (typingTimeout) clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => hideTyping(), 2000);
+    typingTimeout = setTimeout(() => {
+      typingIndicator.classList.add('hidden');
+      typingIndicator.classList.remove('flex');
+    }, 2000);
   }
 
-  function hideTyping() {
-    if (!typingIndicator) return;
-    typingIndicator.classList.add('hidden');
-    typingIndicator.classList.remove('flex');
+  // Voice Note Recording
+  function startVoiceNoteRecording() {
+    if (state.isVoiceRecording) {
+      finishVoiceNoteRecording();
+      return;
+    }
+
+    try {
+      if (!webrtc.localStream) {
+        showToast('Microphone not available');
+        return;
+      }
+
+      state.voiceChunks = [];
+      const rec = new MediaRecorder(webrtc.localStream);
+      rec.ondataavailable = (e) => {
+        if (e.data.size > 0) state.voiceChunks.push(e.data);
+      };
+      rec.onstop = () => {
+        const blob = new Blob(state.voiceChunks, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64Audio = reader.result;
+          const msg = {
+            id: 'msg-' + Date.now(),
+            sender: state.userName,
+            audioUrl: base64Audio,
+            isMe: true,
+            isP2P: true,
+            timestamp: getCurrentTime()
+          };
+          appendChatMessage(msg);
+          webrtc.sendP2PMessage({
+            type: 'voice-note',
+            sender: state.userName,
+            audioUrl: base64Audio
+          });
+        };
+        reader.readAsDataURL(blob);
+      };
+
+      rec.start();
+      state.voiceRecorder = rec;
+      state.isVoiceRecording = true;
+      state.voiceTimer = 0;
+
+      if (voiceNoteRecBar) voiceNoteRecBar.classList.remove('hidden');
+      if (voiceNoteBtn) voiceNoteBtn.classList.add('bg-error-container', 'text-error');
+
+      if (state.voiceInterval) clearInterval(state.voiceInterval);
+      state.voiceInterval = setInterval(() => {
+        state.voiceTimer++;
+        const m = Math.floor(state.voiceTimer / 60).toString().padStart(2, '0');
+        const s = (state.voiceTimer % 60).toString().padStart(2, '0');
+        if (voiceRecTimer) voiceRecTimer.textContent = `${m}:${s}`;
+      }, 1000);
+    } catch (e) {
+      showToast('Voice note error: ' + e.message);
+    }
+  }
+
+  function finishVoiceNoteRecording() {
+    if (!state.isVoiceRecording) return;
+    if (state.voiceRecorder && state.voiceRecorder.state !== 'inactive') {
+      state.voiceRecorder.stop();
+    }
+    state.isVoiceRecording = false;
+    if (state.voiceInterval) clearInterval(state.voiceInterval);
+    if (voiceNoteRecBar) voiceNoteRecBar.classList.add('hidden');
+    if (voiceNoteBtn) voiceNoteBtn.classList.remove('bg-error-container', 'text-error');
+  }
+
+  // ==========================================
+  // AUDIO SPACES MODULE
+  // ==========================================
+  async function loadAudioSpace(spaceId = 'product-design-1') {
+    try {
+      socket.emit('join-space', { spaceId, userName: state.userName });
+      const res = await fetch('/api/spaces');
+      if (res.ok) {
+        const spacesList = await res.json();
+        const activeSpace = spacesList.find(s => s.id === spaceId) || spacesList[0];
+        if (activeSpace) {
+          state.audioSpace = activeSpace;
+          renderAudioSpaceUI(activeSpace);
+        }
+      }
+    } catch (e) {
+      console.warn('Audio space load error:', e);
+    }
+  }
+
+  function renderAudioSpaceUI(space) {
+    if (!space) return;
+    if (spaceTitle) spaceTitle.textContent = space.title;
+    if (spaceDesc) spaceDesc.textContent = space.description;
+    if (spaceTopicTag) spaceTopicTag.textContent = space.topic;
+    if (spaceListenersCount) spaceListenersCount.textContent = space.listenersCount;
+
+    // 1. Render Speakers Grid
+    if (spaceSpeakersGrid) {
+      spaceSpeakersGrid.innerHTML = '';
+      (space.speakers || []).forEach(speaker => {
+        const isHost = speaker.role === 'HOST';
+        const card = document.createElement('div');
+        card.className = 'relative bg-surface-container/70 backdrop-blur-xl p-3.5 rounded-2xl flex flex-col items-center justify-center text-center gap-2 overflow-hidden border border-white/5 transition-all hover:border-primary/40';
+
+        card.innerHTML = `
+          ${speaker.isSpeaking ? '<div class="absolute inset-0 bg-gradient-to-b from-primary/15 via-transparent to-transparent pointer-events-none"></div>' : ''}
+          <div class="relative mt-1">
+            ${speaker.isSpeaking ? '<div class="absolute -inset-1.5 rounded-full bg-primary/30 animate-pulse"></div>' : ''}
+            <div class="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden shadow-md ${speaker.isSpeaking ? 'ring-2 ring-primary shadow-primary/20' : ''}">
+              <img src="${speaker.avatar}" class="w-full h-full object-cover" />
+            </div>
+            ${isHost ? '<div class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-on-primary flex items-center justify-center text-[12px] font-bold shadow-md">★</div>' : ''}
+            ${speaker.isSpeaking ? `
+              <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full bg-surface-container-lowest/90 backdrop-blur-md flex items-center gap-0.5 shadow-sm">
+                <span class="w-0.5 h-2.5 bg-primary rounded-full animate-bounce"></span>
+                <span class="w-0.5 h-3.5 bg-primary rounded-full animate-bounce delay-75"></span>
+                <span class="w-0.5 h-2 bg-primary rounded-full animate-bounce delay-150"></span>
+              </div>
+            ` : ''}
+          </div>
+          <div class="flex flex-col items-center min-w-0 w-full">
+            <span class="font-headline font-semibold text-xs sm:text-sm text-on-surface truncate">${escapeHtml(speaker.name)}</span>
+            <span class="font-mono text-[9px] sm:text-[10px] text-primary tracking-wider uppercase font-semibold">${speaker.role} ${speaker.isSpeaking ? '• SPEAKING' : ''}</span>
+          </div>
+        `;
+        spaceSpeakersGrid.appendChild(card);
+      });
+      if (spaceSpeakerBadge) {
+        spaceSpeakerBadge.textContent = `${space.speakers?.length || 0} Speaking`;
+      }
+    }
+
+    // 2. Render Hand Raises
+    if (handRaisesList) {
+      handRaisesList.innerHTML = '';
+      const raises = space.handRaises || [];
+      if (handRaisesBadge) handRaisesBadge.textContent = `${raises.length} Request${raises.length === 1 ? '' : 's'}`;
+
+      if (raises.length === 0) {
+        handRaisesList.innerHTML = `<span class="text-xs text-on-surface-variant font-mono py-1">No pending speaker requests</span>`;
+      } else {
+        raises.forEach(user => {
+          const pill = document.createElement('div');
+          pill.className = 'flex items-center justify-between gap-2 px-3 py-1.5 rounded-full bg-surface-container-highest border border-amber-400/20 text-xs font-mono';
+          pill.innerHTML = `
+            <span class="font-bold text-amber-300">✋ ${escapeHtml(user.name)}</span>
+            <button class="approve-speaker-btn px-2.5 py-0.5 rounded-full bg-primary text-on-primary font-bold text-[10px] hover:brightness-110 active:scale-95 transition-all" data-socket="${user.id}">
+              Approve
+            </button>
+          `;
+          const btn = pill.querySelector('.approve-speaker-btn');
+          btn.addEventListener('click', () => {
+            socket.emit('approve-speaker', { spaceId: space.id, targetSocketId: user.id });
+            showToast(`Approved ${user.name} to speak!`);
+          });
+          handRaisesList.appendChild(pill);
+        });
+      }
+    }
+
+    // 3. Render Audience
+    if (spaceAudienceGrid) {
+      spaceAudienceGrid.innerHTML = '';
+      (space.audience || []).forEach(aud => {
+        const item = document.createElement('div');
+        item.className = 'flex flex-col items-center gap-1 text-center';
+        item.innerHTML = `
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden shadow-sm ring-1 ring-white/10">
+            <img src="${aud.avatar}" class="w-full h-full object-cover" />
+          </div>
+          <span class="font-body text-[10px] text-on-surface-variant truncate max-w-[64px]">${escapeHtml(aud.name)}</span>
+        `;
+        spaceAudienceGrid.appendChild(item);
+      });
+    }
+  }
+
+  // ==========================================
+  // CALL HISTORY & QUICK LAUNCHER MODULE
+  // ==========================================
+  async function loadCallLogs() {
+    try {
+      const res = await fetch('/api/call-logs');
+      if (res.ok) {
+        state.callLogs = await res.json();
+        renderCallLogsUI();
+      }
+    } catch (e) {
+      console.warn('Call logs load error:', e);
+    }
+  }
+
+  function renderCallLogsUI() {
+    if (!callLogsContainer) return;
+    callLogsContainer.innerHTML = '';
+
+    const filtered = (state.callLogs || []).filter(log => {
+      if (state.historyTab === 'missed' && log.status !== 'missed') return false;
+      if (state.historyFilter !== 'all' && log.type !== state.historyFilter) return false;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      callLogsContainer.innerHTML = `
+        <div class="text-center py-8 text-on-surface-variant font-mono text-xs">
+          No calls match the selected filter.
+        </div>
+      `;
+      return;
+    }
+
+    filtered.forEach(log => {
+      const isMissed = log.status === 'missed';
+      const item = document.createElement('div');
+      item.className = 'flex items-center justify-between p-3.5 rounded-2xl bg-surface-container hover:bg-surface-container-high transition-colors border border-white/5 shadow-sm group';
+
+      const typeIcon = log.type === 'video' ? 'videocam' : (log.type === 'space' ? 'podcasts' : 'call');
+      const dirIcon = isMissed ? 'call_missed' : (log.direction === 'incoming' ? 'call_received' : 'call_made');
+      const dirColor = isMissed ? 'text-error' : 'text-primary';
+
+      item.innerHTML = `
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="relative w-11 h-11 rounded-full overflow-hidden shrink-0 shadow-md ring-1 ring-white/10">
+            <img src="${log.avatar}" class="w-full h-full object-cover" />
+            <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full ${isMissed ? 'bg-error' : 'bg-primary'} ring-2 ring-surface-container"></span>
+          </div>
+          <div class="flex flex-col min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="font-headline font-semibold text-sm text-on-surface truncate">${escapeHtml(log.peerName)}</span>
+              <span class="material-symbols-outlined text-[15px] ${dirColor}">${dirIcon}</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-[11px] font-mono text-on-surface-variant">
+              <span>${log.timestamp}</span>
+              <span>•</span>
+              <span>${log.duration}</span>
+              <span>•</span>
+              <span class="text-primary">${log.quality}</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="call-back-btn px-3.5 py-1.5 rounded-full bg-primary text-on-primary font-mono font-bold text-xs flex items-center gap-1 shadow-md hover:brightness-110 active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[16px]">${typeIcon}</span>
+          <span>Call Back</span>
+        </button>
+      `;
+
+      const btn = item.querySelector('.call-back-btn');
+      btn.addEventListener('click', () => {
+        state.roomId = log.room || 'pulse-room';
+        if (webrtc.setRoomId) webrtc.setRoomId(state.roomId);
+        if (log.type === 'space') {
+          setAppView('spaces');
+        } else {
+          setAppView('video');
+        }
+        showToast(`Connecting with ${log.peerName} in room ${state.roomId}...`);
+      });
+
+      callLogsContainer.appendChild(item);
+    });
   }
 
   // ==========================================
   // FLOATING PARTICLES & REACTIONS
   // ==========================================
-
   function spawnReaction(emoji) {
     const container = document.getElementById('reactionField');
     if (!container) return;
@@ -859,66 +1233,138 @@
   function copyInviteLink() {
     const inviteUrl = `${window.location.origin}/?room=${encodeURIComponent(state.roomId)}&peer=2`;
     navigator.clipboard.writeText(inviteUrl).then(() => {
-      showToast('Invite link copied! Open in 2nd tab to connect.');
+      showToast('Invite link copied! Open in 2nd tab to test call.');
     }).catch(() => {
       showToast(`Room: ${state.roomId}`);
     });
   }
 
+  function getCurrentTime() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function setP2PStatus(connected) {
+    state.isP2PConnected = connected;
+    if (!p2pDot || !p2pStatusLabel) return;
+    const peerCount = state.activePeers.size;
+    if (connected && peerCount > 0) {
+      p2pDot.className = 'w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#4edea3]';
+      p2pStatusLabel.className = 'text-primary font-bold text-[11px]';
+      p2pStatusLabel.textContent = `${peerCount + 1} online (E2EE)`;
+    } else {
+      p2pDot.className = 'w-2 h-2 rounded-full bg-amber-400';
+      p2pStatusLabel.className = 'text-on-surface-variant font-medium text-[11px]';
+      p2pStatusLabel.textContent = 'Waiting for peer';
+    }
+  }
+
+  function startCallTimer() {
+    const savedTime = sessionStorage.getItem('pulse_call_seconds');
+    if (savedTime && !isNaN(parseInt(savedTime, 10))) {
+      state.callSeconds = parseInt(savedTime, 10);
+    }
+    if (state.timerInterval) clearInterval(state.timerInterval);
+    state.timerInterval = setInterval(() => {
+      state.callSeconds++;
+      sessionStorage.setItem('pulse_call_seconds', state.callSeconds);
+      const mins = Math.floor(state.callSeconds / 60);
+      const secs = state.callSeconds % 60;
+      const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      if (callTimerEl) callTimerEl.textContent = timeStr;
+    }, 1000);
+  }
+
+  function setMobileView(view) {
+    state.mobileView = view;
+    if (view === 'stage') {
+      document.body.classList.remove('mobile-view-chat');
+      document.body.classList.add('mobile-view-stage');
+      if (mobileTabCallBtn) {
+        mobileTabCallBtn.className = 'flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full bg-primary text-on-primary font-bold shadow-sm transition-all';
+      }
+      if (mobileTabChatBtn) {
+        mobileTabChatBtn.className = 'flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-on-surface-variant hover:text-on-surface transition-all relative';
+      }
+    } else {
+      document.body.classList.remove('mobile-view-stage');
+      document.body.classList.add('mobile-view-chat');
+      if (mobileTabChatBtn) {
+        mobileTabChatBtn.className = 'flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full bg-primary text-on-primary font-bold shadow-sm transition-all relative';
+      }
+      if (mobileTabCallBtn) {
+        mobileTabCallBtn.className = 'flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-on-surface-variant hover:text-on-surface transition-all';
+      }
+      state.unreadChatCount = 0;
+      updateUnreadBadges();
+      if (chatStream) {
+        setTimeout(() => { chatStream.scrollTop = chatStream.scrollHeight; }, 50);
+      }
+    }
+  }
+
+  function updateUnreadBadges() {
+    if (mobileUnreadBadge) {
+      if (state.unreadChatCount > 0) {
+        mobileUnreadBadge.textContent = state.unreadChatCount > 9 ? '9+' : state.unreadChatCount;
+        mobileUnreadBadge.classList.remove('hidden');
+        mobileUnreadBadge.classList.add('flex');
+      } else {
+        mobileUnreadBadge.classList.add('hidden');
+        mobileUnreadBadge.classList.remove('flex');
+      }
+    }
+    if (dockUnreadBadge) {
+      dockUnreadBadge.classList.toggle('hidden', state.unreadChatCount === 0);
+    }
+  }
+
   // ==========================================
   // EVENT LISTENERS & WIRING
   // ==========================================
-
   function setupEvents() {
-    // Mobile View Navigation
-    if (mobileTabCallBtn) {
-      mobileTabCallBtn.addEventListener('click', () => setMobileView('stage'));
-    }
-    if (mobileTabChatBtn) {
-      mobileTabChatBtn.addEventListener('click', () => setMobileView('chat'));
-    }
-    if (dockChatBtn) {
-      dockChatBtn.addEventListener('click', () => setMobileView('chat'));
-    }
-    if (mobileBackToCallBtn) {
-      mobileBackToCallBtn.addEventListener('click', () => setMobileView('stage'));
-    }
+    // 1. Navigation Tabs
+    if (navTabVideo) navTabVideo.addEventListener('click', () => setAppView('video'));
+    if (navTabSpaces) navTabSpaces.addEventListener('click', () => setAppView('spaces'));
+    if (navTabHistory) navTabHistory.addEventListener('click', () => setAppView('history'));
+    if (quickSpacesBtn) quickSpacesBtn.addEventListener('click', () => setAppView('spaces'));
+    if (returnToCallBtn) returnToCallBtn.addEventListener('click', () => setAppView('video'));
 
-    // Audio Autoplay Policy Unlock (Unmute and play all remote video elements)
+    // 2. Mobile View Switcher
+    if (mobileTabCallBtn) mobileTabCallBtn.addEventListener('click', () => setMobileView('stage'));
+    if (mobileTabChatBtn) mobileTabChatBtn.addEventListener('click', () => setMobileView('chat'));
+    if (dockChatBtn) dockChatBtn.addEventListener('click', () => setMobileView('chat'));
+    if (mobileBackToCallBtn) mobileBackToCallBtn.addEventListener('click', () => setMobileView('stage'));
+
+    // 3. Audio Autoplay Unlock
     const unlockAudio = () => {
-      if (webrtc && webrtc.unlockAudio) {
-        webrtc.unlockAudio();
-      }
+      if (webrtc && webrtc.unlockAudio) webrtc.unlockAudio();
       document.querySelectorAll('#videoGrid video').forEach(v => {
         v.muted = false;
         v.play().catch(() => {});
       });
-      if (audioUnlockBanner) {
-        audioUnlockBanner.classList.add('hidden');
-      }
+      if (audioUnlockBanner) audioUnlockBanner.classList.add('hidden');
     };
 
-    if (audioUnlockBanner) {
-      audioUnlockBanner.addEventListener('click', () => {
-        unlockAudio();
-        showToast('Audio unmuted and enabled');
-      });
-    }
-
-    // Unlock on any first click in page to ensure seamless audio listening
+    if (audioUnlockBanner) audioUnlockBanner.addEventListener('click', unlockAudio);
     document.addEventListener('click', unlockAudio, { once: true });
     document.addEventListener('touchstart', unlockAudio, { once: true });
 
-    // Copy Invite Links
-    const copyBtns = [
-      document.getElementById('copy-invite-btn'),
-      document.getElementById('invite-peer-btn')
-    ];
-    copyBtns.forEach(btn => {
+    // 4. Invite Links
+    [copyInviteBtn, invitePeerBtn].forEach(btn => {
       if (btn) btn.addEventListener('click', copyInviteLink);
     });
 
-    // Layout Mode Toggle Buttons
+    // 5. Layout Modes & Aspect Ratio
     if (viewGridBtn) {
       viewGridBtn.addEventListener('click', () => {
         state.layoutMode = 'grid';
@@ -939,38 +1385,86 @@
       });
     }
 
-    // Global Video Fit/Fill Toggle
     if (toggleFitBtn) {
       toggleFitBtn.addEventListener('click', () => {
         state.globalFitMode = state.globalFitMode === 'cover' ? 'contain' : 'cover';
         const isContain = state.globalFitMode === 'contain';
         if (fitText) fitText.textContent = isContain ? 'Fit' : 'Fill';
         if (fitIcon) fitIcon.textContent = isContain ? 'aspect_ratio' : 'crop_free';
-
-        // Apply to all video elements in grid
         document.querySelectorAll('#videoGrid video').forEach(v => {
-          if (isContain) {
-            v.classList.remove('object-cover');
-            v.classList.add('object-contain');
-          } else {
-            v.classList.remove('object-contain');
-            v.classList.add('object-cover');
-          }
+          v.classList.toggle('object-contain', isContain);
+          v.classList.toggle('object-cover', !isContain);
         });
-
-        showToast(isContain ? 'Video mode: Full frame (Fit)' : 'Video mode: Zoom fill (Cover)');
+        showToast(isContain ? 'Video: Full frame (Fit)' : 'Video: Zoom fill (Cover)');
       });
     }
 
-    // Stage Fullscreen Buttons
-    if (stageFullscreenBtn) {
-      stageFullscreenBtn.addEventListener('click', () => toggleFullscreen(videoStage));
-    }
-    if (dockFullscreenBtn) {
-      dockFullscreenBtn.addEventListener('click', () => toggleFullscreen(videoStage));
+    if (stageFullscreenBtn) stageFullscreenBtn.addEventListener('click', () => toggleFullscreen(videoStage));
+    if (dockFullscreenBtn) dockFullscreenBtn.addEventListener('click', () => toggleFullscreen(videoStage));
+
+    // 6. Media Controls (Mic, Cam, Screen, Blur, Record, Leave)
+    if (toggleMicBtn && micIcon) {
+      toggleMicBtn.addEventListener('click', () => {
+        const isEnabled = webrtc.toggleAudio();
+        if (isEnabled) {
+          toggleMicBtn.className = 'w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg active:scale-95 transition-all';
+          micIcon.textContent = 'mic';
+          showToast('Microphone unmuted');
+        } else {
+          toggleMicBtn.className = 'w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-error-container text-on-error flex items-center justify-center shadow-lg active:scale-95 transition-all';
+          micIcon.textContent = 'mic_off';
+          showToast('Microphone muted');
+        }
+      });
     }
 
-    // Chat Composer
+    if (toggleCamBtn && camIcon) {
+      toggleCamBtn.addEventListener('click', () => {
+        const isEnabled = webrtc.toggleVideo();
+        if (isEnabled) {
+          toggleCamBtn.className = 'w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all';
+          camIcon.textContent = 'videocam';
+          showToast('Camera enabled');
+        } else {
+          toggleCamBtn.className = 'w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-error-container text-on-error flex items-center justify-center active:scale-95 transition-all';
+          camIcon.textContent = 'videocam_off';
+          showToast('Camera disabled');
+        }
+      });
+    }
+
+    if (shareScreenBtn) {
+      shareScreenBtn.addEventListener('click', async () => {
+        const isSharing = await webrtc.toggleScreenShare(localVideoEl);
+        shareScreenBtn.classList.toggle('bg-secondary', isSharing);
+        shareScreenBtn.classList.toggle('text-on-secondary', isSharing);
+        showToast(isSharing ? 'Screen sharing active' : 'Screen sharing stopped');
+      });
+    }
+
+    if (studioBlurBtn) studioBlurBtn.addEventListener('click', toggleStudioBlur);
+    if (recordCallBtn) recordCallBtn.addEventListener('click', startStudioRecording);
+    if (stopRecordBtn) stopRecordBtn.addEventListener('click', stopStudioRecording);
+
+    if (leaveCallBtn) {
+      leaveCallBtn.addEventListener('click', () => {
+        if (confirm('Leave current session and return to history?')) {
+          setAppView('history');
+          showToast('Session ended');
+        }
+      });
+    }
+
+    [camFlipBtn, pipFlipCamBtn].forEach(btn => {
+      if (btn) {
+        btn.addEventListener('click', () => {
+          webrtc.flipCamera(localVideoEl);
+          showToast('Camera flipped');
+        });
+      }
+    });
+
+    // 7. Chat Inputs
     if (sendMsgBtn) sendMsgBtn.addEventListener('click', sendMessage);
     if (chatInput) {
       chatInput.addEventListener('keydown', (e) => {
@@ -980,18 +1474,60 @@
         }
       });
       chatInput.addEventListener('input', () => {
-        if (webrtc.hasActiveP2P()) {
-          webrtc.sendP2PMessage({ type: 'typing', sender: state.userName });
-        }
+        webrtc.sendP2PMessage({ type: 'typing', sender: state.userName });
       });
     }
 
-    // Quick Emoji button
-    const emojiQuickBtn = document.getElementById('emoji-quick-btn');
     if (emojiQuickBtn && chatInput) {
       emojiQuickBtn.addEventListener('click', () => {
         chatInput.value += ' ✨ ';
         chatInput.focus();
+      });
+    }
+
+    if (voiceNoteBtn) voiceNoteBtn.addEventListener('click', startVoiceNoteRecording);
+    if (cancelVoiceNoteBtn) cancelVoiceNoteBtn.addEventListener('click', finishVoiceNoteRecording);
+
+    if (chatFileInput) {
+      chatFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const imgData = reader.result;
+            const msg = {
+              id: 'msg-' + Date.now(),
+              sender: state.userName,
+              imageUrl: imgData,
+              isMe: true,
+              isP2P: true,
+              timestamp: getCurrentTime()
+            };
+            appendChatMessage(msg);
+            webrtc.sendP2PMessage({
+              type: 'image',
+              sender: state.userName,
+              imgData
+            });
+            showToast('Image shared in chat');
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+
+    if (exportChatBtn) {
+      exportChatBtn.addEventListener('click', () => {
+        const textNodes = Array.from(document.querySelectorAll('#chat-stream > div'))
+          .map(d => d.innerText.replace(/\n+/g, ' ')).join('\n');
+        const blob = new Blob([textNodes || 'No messages in chat.'], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `pulse-chat-transcript-${Date.now()}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => a.remove(), 100);
+        showToast('Chat transcript exported');
       });
     }
 
@@ -1007,109 +1543,195 @@
       });
     });
 
-    // Microphone Toggle
-    const toggleMicBtn = document.getElementById('toggleMicBtn');
-    const micIcon = document.getElementById('micIcon');
-    if (toggleMicBtn && micIcon) {
-      toggleMicBtn.addEventListener('click', () => {
-        const isEnabled = webrtc.toggleAudio();
-        if (isEnabled) {
-          toggleMicBtn.className = 'w-11 h-11 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg active:scale-95 transition-all';
-          micIcon.textContent = 'mic';
-          showToast('Microphone unmuted');
-        } else {
-          toggleMicBtn.className = 'w-11 h-11 rounded-full bg-error-container text-on-error flex items-center justify-center shadow-lg active:scale-95 transition-all';
-          micIcon.textContent = 'mic_off';
-          showToast('Microphone muted');
-        }
+    // 8. Settings Modal
+    if (settingsModalBtn) {
+      settingsModalBtn.addEventListener('click', () => {
+        if (settingsModal) settingsModal.classList.remove('hidden');
+        populateDeviceSelectors();
+      });
+    }
+    if (closeSettingsBtn) {
+      closeSettingsBtn.addEventListener('click', () => {
+        if (settingsModal) settingsModal.classList.add('hidden');
       });
     }
 
-    // Camera Toggle
-    const toggleCamBtn = document.getElementById('toggleCamBtn');
-    const camIcon = document.getElementById('camIcon');
-    if (toggleCamBtn && camIcon) {
-      toggleCamBtn.addEventListener('click', () => {
-        const isEnabled = webrtc.toggleVideo();
-        if (isEnabled) {
-          toggleCamBtn.className = 'w-11 h-11 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all';
-          camIcon.textContent = 'videocam';
-          showToast('Camera enabled');
-        } else {
-          toggleCamBtn.className = 'w-11 h-11 rounded-full bg-error-container text-on-error flex items-center justify-center active:scale-95 transition-all';
-          camIcon.textContent = 'videocam_off';
-          showToast('Camera disabled');
-        }
+    if (testSpeakerBtn) {
+      testSpeakerBtn.addEventListener('click', () => {
+        playStudioChime('speaker-test');
+        showToast('Playing studio harmonic chime...');
       });
     }
 
-    // Screen Share Toggle
-    const shareScreenBtn = document.getElementById('shareScreenBtn');
-    if (shareScreenBtn) {
-      shareScreenBtn.addEventListener('click', async () => {
-        const isSharing = await webrtc.toggleScreenShare(localVideoEl);
-        if (isSharing) {
-          shareScreenBtn.classList.add('bg-secondary', 'text-on-secondary');
-          showToast('Screen sharing started');
-          appendMilestone(`${state.userName} started screen share`, 'screen_share');
-        } else {
-          shareScreenBtn.classList.remove('bg-secondary', 'text-on-secondary');
-          showToast('Screen sharing stopped');
-        }
-      });
-    }
-
-    // Flip Camera Toggle
-    const camFlipBtns = [
-      document.getElementById('camFlipBtn'),
-      document.getElementById('pipFlipCamBtn')
-    ];
-    camFlipBtns.forEach(btn => {
-      if (btn) {
-        btn.addEventListener('click', () => {
-          webrtc.flipCamera(localVideoEl);
-          showToast('Camera flipped');
+    document.querySelectorAll('.settings-profile-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.profile;
+        webrtc.setBandwidthProfile(key);
+        document.querySelectorAll('.settings-profile-btn').forEach(b => {
+          b.className = 'settings-profile-btn px-3 py-2 rounded-xl bg-surface-container-highest border border-white/5 text-on-surface text-left';
         });
-      }
+        btn.className = 'settings-profile-btn px-3 py-2 rounded-xl bg-primary/20 border border-primary text-primary font-bold text-left';
+        updateBandwidthUI(key);
+        showToast(`Bandwidth Profile: ${webrtc.bandwidthProfiles[key].label}`);
+      });
     });
 
-    // PiP Interactive Drag & Resize
-    setupPipControls();
+    // 9. Audio Space Controls
+    if (spaceHandBtn) {
+      spaceHandBtn.addEventListener('click', () => {
+        state.hasRaisedHand = !state.hasRaisedHand;
+        if (state.hasRaisedHand) {
+          socket.emit('raise-hand', { spaceId: 'product-design-1', userName: state.userName });
+          spaceHandBtn.className = 'flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-surface-container-highest text-on-surface font-mono font-bold text-xs shadow-lg active:scale-95 transition-all';
+          if (spaceHandBtnText) spaceHandBtnText.textContent = 'Lower Hand';
+          showToast('Hand raised! Waiting for host approval.');
+        } else {
+          socket.emit('lower-hand', { spaceId: 'product-design-1' });
+          spaceHandBtn.className = 'flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-amber-400 text-surface font-mono font-bold text-xs shadow-lg active:scale-95 transition-all';
+          if (spaceHandBtnText) spaceHandBtnText.textContent = 'Raise Hand';
+          showToast('Hand lowered.');
+        }
+      });
+    }
 
-    // Low-Bandwidth Mode & Live Network Telemetry
+    if (spaceMicBtn) {
+      spaceMicBtn.addEventListener('click', () => {
+        const isEnabled = webrtc.toggleAudio();
+        spaceMicBtn.classList.toggle('text-primary', isEnabled);
+        spaceMicBtn.classList.toggle('text-error', !isEnabled);
+        socket.emit('speaking-state', { spaceId: 'product-design-1', isSpeaking: isEnabled });
+        showToast(isEnabled ? 'Stage Mic: Live' : 'Stage Mic: Muted');
+      });
+    }
+
+    if (spaceLeaveBtn) {
+      spaceLeaveBtn.addEventListener('click', () => {
+        setAppView('video');
+        showToast('Left Audio Space quietly');
+      });
+    }
+
+    // 10. Call History & Quick Launcher Controls
+    if (randomizeRoomBtn && launcherRoomInput) {
+      randomizeRoomBtn.addEventListener('click', () => {
+        launcherRoomInput.value = `pulse-studio-${Math.floor(100 + Math.random() * 900)}`;
+      });
+    }
+
+    if (launchVideoBtn && launcherRoomInput) {
+      launchVideoBtn.addEventListener('click', () => {
+        const newRoom = launcherRoomInput.value.trim() || 'pulse-room';
+        state.roomId = newRoom;
+        if (webrtc.setRoomId) webrtc.setRoomId(newRoom);
+        socket.emit('join-video-room', { roomId: newRoom, userName: state.userName });
+        setAppView('video');
+        showToast(`Joined Video Room: ${newRoom}`);
+      });
+    }
+
+    if (launchSpaceBtn) {
+      launchSpaceBtn.addEventListener('click', () => {
+        setAppView('spaces');
+      });
+    }
+
+    if (historyTabAll) {
+      historyTabAll.addEventListener('click', () => {
+        state.historyTab = 'all';
+        historyTabAll.className = 'flex-1 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-mono text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5';
+        if (historyTabMissed) historyTabMissed.className = 'flex-1 py-1.5 rounded-lg text-on-surface-variant hover:text-on-surface font-mono text-xs transition-all flex items-center justify-center gap-1.5';
+        renderCallLogsUI();
+      });
+    }
+
+    if (historyTabMissed) {
+      historyTabMissed.addEventListener('click', () => {
+        state.historyTab = 'missed';
+        historyTabMissed.className = 'flex-1 py-1.5 rounded-lg bg-surface-container-high text-error font-mono text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5';
+        if (historyTabAll) historyTabAll.className = 'flex-1 py-1.5 rounded-lg text-on-surface-variant hover:text-on-surface font-mono text-xs transition-all flex items-center justify-center gap-1.5';
+        renderCallLogsUI();
+      });
+    }
+
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        state.historyFilter = chip.dataset.filter;
+        document.querySelectorAll('.filter-chip').forEach(c => {
+          c.className = 'filter-chip px-3 py-1 rounded-full bg-surface-container text-on-surface-variant font-mono text-xs hover:text-on-surface flex items-center gap-1 shrink-0';
+        });
+        chip.className = 'filter-chip px-3 py-1 rounded-full bg-primary/20 text-primary font-mono text-xs font-semibold flex items-center gap-1 shrink-0';
+        renderCallLogsUI();
+      });
+    });
+
+    setupPipControls();
     setupBandwidthControls();
+  }
+
+  // ==========================================
+  // DEVICE ENUMERATION & POPULATION
+  // ==========================================
+  async function populateDeviceSelectors() {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+      const devices = await navigator.mediaDevices.enumerateDevices();
+
+      if (cameraSelect) {
+        cameraSelect.innerHTML = '';
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        videoDevices.forEach((dev, idx) => {
+          const opt = document.createElement('option');
+          opt.value = dev.deviceId;
+          opt.textContent = dev.label || `Camera ${idx + 1}`;
+          cameraSelect.appendChild(opt);
+        });
+      }
+
+      if (micSelect) {
+        micSelect.innerHTML = '';
+        const audioDevices = devices.filter(d => d.kind === 'audioinput');
+        audioDevices.forEach((dev, idx) => {
+          const opt = document.createElement('option');
+          opt.value = dev.deviceId;
+          opt.textContent = dev.label || `Microphone ${idx + 1}`;
+          micSelect.appendChild(opt);
+        });
+      }
+    } catch (e) {
+      console.warn('Device enumeration error:', e);
+    }
+  }
+
+  // ==========================================
+  // BANDWIDTH CONTROL
+  // ==========================================
+  function updateBandwidthUI(profileKey) {
+    const prof = webrtc.bandwidthProfiles[profileKey];
+    if (!prof) return;
+
+    if (bandwidthLabel) {
+      if (profileKey === 'saver') bandwidthLabel.textContent = 'Data Saver (160k)';
+      else if (profileKey === 'balanced') bandwidthLabel.textContent = 'Balanced (450k)';
+      else if (profileKey === 'hd') bandwidthLabel.textContent = 'HD Mode (1.2M)';
+      else if (profileKey === 'audio-only') bandwidthLabel.textContent = 'Audio Only (16k)';
+    }
+
+    if (bandwidthIcon) {
+      if (profileKey === 'saver') bandwidthIcon.textContent = 'eco';
+      else if (profileKey === 'audio-only') bandwidthIcon.textContent = 'headset';
+      else if (profileKey === 'hd') bandwidthIcon.textContent = 'high_quality';
+      else bandwidthIcon.textContent = 'speed';
+    }
+
+    if (audioOnlyBtn) {
+      audioOnlyBtn.classList.toggle('bg-secondary', profileKey === 'audio-only');
+      audioOnlyBtn.classList.toggle('text-on-secondary', profileKey === 'audio-only');
+    }
   }
 
   function setupBandwidthControls() {
     const profileKeys = ['saver', 'balanced', 'hd', 'audio-only'];
     let currentProfileIdx = 0;
-
-    function updateBandwidthUI(profileKey) {
-      const prof = webrtc.bandwidthProfiles[profileKey];
-      if (!prof) return;
-
-      if (bandwidthLabel) {
-        if (profileKey === 'saver') bandwidthLabel.textContent = 'Data Saver (160k)';
-        else if (profileKey === 'balanced') bandwidthLabel.textContent = 'Balanced (450k)';
-        else if (profileKey === 'hd') bandwidthLabel.textContent = 'HD Mode (1.2M)';
-        else if (profileKey === 'audio-only') bandwidthLabel.textContent = 'Audio Only (16k)';
-      }
-
-      if (bandwidthIcon) {
-        if (profileKey === 'saver') bandwidthIcon.textContent = 'eco';
-        else if (profileKey === 'audio-only') bandwidthIcon.textContent = 'headset';
-        else if (profileKey === 'hd') bandwidthIcon.textContent = 'high_quality';
-        else bandwidthIcon.textContent = 'speed';
-      }
-
-      if (audioOnlyBtn) {
-        if (profileKey === 'audio-only') {
-          audioOnlyBtn.className = 'w-11 h-11 rounded-full bg-secondary text-on-secondary flex items-center justify-center shadow-lg active:scale-95 transition-all';
-        } else {
-          audioOnlyBtn.className = 'w-11 h-11 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:text-primary active:scale-95 transition-all';
-        }
-      }
-    }
 
     if (bandwidthBtn) {
       bandwidthBtn.addEventListener('click', () => {
@@ -1132,20 +1754,23 @@
       });
     }
 
-    // Initialize UI
     updateBandwidthUI(webrtc.bandwidthProfile);
 
-    // Live WebRTC Network Telemetry & Auto Adaptation
     webrtc.startStatsMonitoring((stats) => {
       if (netLatency) {
         const lossText = stats.loss > 0 ? ` • ${stats.loss}% loss` : '';
         netLatency.textContent = `• ${stats.rtt}ms${lossText}`;
       }
+      if (diagRtt) {
+        diagRtt.textContent = `${stats.rtt}ms (0% drop)`;
+      }
       updateBandwidthUI(webrtc.bandwidthProfile);
     });
   }
 
-  // Socket Signaling Handlers
+  // ==========================================
+  // SOCKET SIGNALS & ROOM COORDINATION
+  // ==========================================
   function setupSocket() {
     socket.on('room-info', ({ users }) => {
       if (users && users.length) {
@@ -1178,7 +1803,7 @@
     });
 
     socket.on('user-joined', ({ socketId, name }) => {
-      console.log('[Mesh] Real peer joined room:', socketId, name);
+      console.log('[Mesh] Peer joined room:', socketId, name);
       state.activePeers.set(socketId, {
         id: socketId,
         name: name || `Peer (${socketId.slice(0, 4)})`,
@@ -1187,7 +1812,7 @@
         isMuted: false
       });
       updatePeerCounters();
-      appendMilestone(`${name || 'Peer'} joined the call`, 'login');
+      playStudioChime('join');
       showToast(`${name || 'Peer'} joined call`);
     });
 
@@ -1196,7 +1821,7 @@
     });
 
     socket.on('user-left', ({ socketId }) => {
-      console.log('[Mesh] Real peer left room:', socketId);
+      console.log('[Mesh] Peer left room:', socketId);
       const peer = state.activePeers.get(socketId);
       const peerName = peer ? peer.name : 'Peer';
       if (state.pinnedPeerId === socketId) {
@@ -1205,7 +1830,7 @@
       webrtc.closePeer(socketId);
       removeRemotePeer(socketId);
       updateGridUI();
-      appendMilestone(`${peerName} left the call`, 'logout');
+      playStudioChime('leave');
       showToast(`${peerName} disconnected`);
     });
 
@@ -1218,9 +1843,19 @@
     socket.on('reaction-spawned', ({ emoji }) => {
       spawnReaction(emoji);
     });
+
+    // Space state update sync
+    socket.on('space-updated', (updatedSpace) => {
+      state.audioSpace = updatedSpace;
+      if (state.currentView === 'spaces') {
+        renderAudioSpaceUI(updatedSpace);
+      }
+    });
   }
 
-  // App Startup
+  // ==========================================
+  // APP STARTUP
+  // ==========================================
   document.addEventListener('DOMContentLoaded', async () => {
     setupEvents();
     setupSocket();
@@ -1234,6 +1869,10 @@
       roomId: state.roomId,
       userName: state.userName
     });
+
+    // Preload initial spaces and logs
+    loadAudioSpace();
+    loadCallLogs();
   });
 
 })();
